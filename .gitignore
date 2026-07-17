@@ -40,9 +40,14 @@ yarn-error.log*
 # Forge platform (dev tooling — has its own repo at github.com/nathanokh1/Forge)
 /forge/
 
-# Forge runtime ops state (machine-specific)
+# Forge runtime ops state (machine-specific, churned by the orchestrator)
 /memory/ops/.orchestrator.pid
 /memory/ops/.ops-server.mjs
+/memory/ops/events.jsonl
+/memory/ops/feed.md
+/memory/ops/queue.json
+/memory/ops/state.json
+/memory/ops/next-prompt.md
 
 .vercel
 .env*
