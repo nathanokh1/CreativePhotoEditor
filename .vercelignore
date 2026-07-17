@@ -1,0 +1,12 @@
+# Only ship the Next.js app. Everything below is local dev tooling / docs.
+forge/
+memory/
+skills/
+.obsidian/
+CreativePhotoEditor-cursor-package/
+CODEBASE.md
+FORGE-EXPLAINED.md
+GETTING-STARTED.md
+SESSION-START.md
+node_modules/
+.next/

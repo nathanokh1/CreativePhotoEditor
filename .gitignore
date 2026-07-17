@@ -43,3 +43,6 @@ yarn-error.log*
 # Forge runtime ops state (machine-specific)
 /memory/ops/.orchestrator.pid
 /memory/ops/.ops-server.mjs
+
+.vercel
+.env*
