@@ -1,0 +1,33 @@
+---
+description: How agents read and write memory. Always in effect.
+globs:
+alwaysApply: true
+---
+
+# Memory rules
+
+The team has four kinds of memory. Use them deliberately.
+
+1. **Working docs** (`docs/`) - the current project's brief, research, plan, handoff,
+   review. The live handoff bus between roles. Read upstream, write your own.
+
+2. **Learnings** (`memory/learnings/`) - durable lessons that outlive one project.
+   When you hit a correction, a non-obvious insight, a knowledge gap, or a
+   best practice, append a short entry. Categories: correction | insight |
+   knowledge_gap | best_practice. Never log secrets, tokens, or full config files.
+
+3. **Capability map** (`memory/map/capability-map.md`) - the index of what exists:
+   projects, modules, skills, and how they connect. Consult it before assuming
+   something must be built from scratch. Update it when you add a module or skill.
+
+
+4. **Doc index** (`memory/map/doc-index.md`) - the index of all existing project docs.
+   Check this before opening any doc. Load only the specific file the current task
+   needs. Never load all docs at once. This is how existing knowledge stays accessible
+   without burning context tokens re-reading files every session.
+
+Layer 0 (agentmemory) runs as the retrieval backend — it handles automatic session
+recall and semantic search on top of these files. The files remain the source of truth.
+If agentmemory is not running, fall back to local file reading only.
+
+Keep entries short. Memory is only useful if it stays current and uncontradicted.

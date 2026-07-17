@@ -1,0 +1,30 @@
+---
+description: Project-specific rules for CreativePhotoEditor. Extends global Forge.
+globs:
+alwaysApply: true
+---
+# Project: CreativePhotoEditor
+
+A free, browser-first, simplified Photoshop alternative (layers, move/resize,
+blend, export). Browser is the MVP; Windows/mac/mobile come later by wrapping the
+same browser core. Full design docs live in `CreativePhotoEditor-cursor-package/`
+(PROJECT_BRAIN, ARCHITECTURE, ROADMAP, TAXONOMY) — read those before large work.
+
+## Stack overrides
+- Framework: Next.js 14 (App Router) + TypeScript strict.
+- Rendering: PixiJS (WebGL) — imported ONLY inside `core/render`.
+- UI state: Zustand (`state/`) mirrors the LayerGraph; the LayerGraph is the source of truth.
+- Styling: Tailwind CSS. File I/O: JSZip for the `.cpe` container.
+- Deploy: Vercel (main → Production, dev → Preview). Repo: github.com/nathanokh1/CreativePhotoEditor.
+
+## Conventions
+- Every LayerGraph mutation goes through a Command (`core/commands`) — never mutate
+  the graph directly from a React handler. Undo/redo is not optional.
+- Use TAXONOMY.md terms exactly (Document, Layer, Command, Export vs Save, etc.).
+- Keep the `core/` layer framework-agnostic (no React/Next imports) so it survives
+  a future Tauri/mobile wrap.
+- KISS. If a feature isn't in the current ROADMAP phase, it's out of scope.
+
+## Notes
+- Current phase: Phase 1 (MVP core loop) — import → layer → move/scale → export → save/load .cpe.
+- Forge tooling lives in `/forge` (gitignored; its own repo at github.com/nathanokh1/Forge).

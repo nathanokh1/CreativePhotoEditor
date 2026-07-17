@@ -1,0 +1,18 @@
+---
+description: Project context and orientation — read first in any session
+globs:
+alwaysApply: true
+---
+
+# CreativePhotoEditor — Project Context
+
+This is a browser-first, simplified Photoshop alternative. Core loop: import images → stack/edit on layers → cut/paste/resize → export or save project.
+
+Before doing anything else in a session:
+1. Read `/PROJECT_BRAIN.md` at repo root — decisions log, principles, open questions.
+2. Read `/TAXONOMY.md` — use these exact terms in code, comments, and UI copy. Don't invent synonyms (e.g. it's a "Document," not a "Project" or "Canvas" interchangeably).
+3. Read `/ARCHITECTURE.md` — module boundaries. Respect them, especially: Pixi only gets imported inside `/core/render`, and no direct LayerGraph mutation from UI handlers — always go through a Command.
+
+This project follows Forge's approval-by-exception model: don't stop for confirmation on routine implementation work. Do stop for: kickoff of a new module, a material architectural change, a direction decision not already covered in PROJECT_BRAIN.md, or anything touching the safety floor (data loss risk — e.g. changes to the `.cpe` save/load path).
+
+KISS. If a Photoshop feature isn't in ROADMAP.md's current phase, it doesn't belong in this PR.

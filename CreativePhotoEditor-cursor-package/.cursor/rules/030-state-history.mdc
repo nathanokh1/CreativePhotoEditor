@@ -1,0 +1,20 @@
+---
+description: Command system, undo/redo, and state management rules
+globs: core/commands/**,core/tools/**
+alwaysApply: false
+---
+
+# Commands, History, and Tools
+
+## The one hard rule
+**Every mutation to LayerGraph state goes through a Command.** No exceptions, no "it's just a small change so I'll mutate directly." A Command implements `execute()` and `undo()`. If undo isn't meaningfully implementable for some action, that's a design smell worth flagging back, not a reason to skip the Command wrapper.
+
+Why this is non-negotiable: undo/redo is a Phase 1 requirement (see ROADMAP.md). Retrofitting it after direct-mutation code exists everywhere is exactly the kind of rework KISS is meant to prevent.
+
+## Tools
+- `ToolManager` holds exactly one active Tool.
+- A Tool's job is to translate pointer/keyboard input into Commands. It does not touch `LayerGraph` or the renderer directly.
+- New tools go in `/core/tools/`, one file per tool, implementing a shared `Tool` interface (define this interface before the second tool is built, not after).
+
+## Zustand usage
+Zustand mirrors LayerGraph for React rendering convenience. If you catch a bug where UI state and LayerGraph state disagree, the fix is almost always "the mirror isn't subscribing to the right event," not "patch the Zustand store directly to match." Fix the sync, don't paper over it.

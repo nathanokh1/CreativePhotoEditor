@@ -1,0 +1,70 @@
+﻿{
+    "checks":  [
+                   {
+                       "id":  "node",
+                       "label":  "Node.js",
+                       "action":  null,
+                       "required":  true,
+                       "detail":  "Installed",
+                       "status":  "ok"
+                   },
+                   {
+                       "id":  "python",
+                       "label":  "Python (Layer 0)",
+                       "action":  null,
+                       "required":  true,
+                       "detail":  "Installed",
+                       "status":  "ok"
+                   },
+                   {
+                       "label":  "agentmemory RAG",
+                       "status":  "ok",
+                       "detail":  "Running on :8765",
+                       "id":  "agentmemory",
+                       "required":  true
+                   },
+                   {
+                       "id":  "github_token",
+                       "label":  "GitHub token",
+                       "action":  null,
+                       "required":  true,
+                       "detail":  "Configured",
+                       "status":  "ok"
+                   },
+                   {
+                       "id":  "brave_api_key",
+                       "label":  "Brave Search",
+                       "action":  null,
+                       "required":  true,
+                       "detail":  "Configured",
+                       "status":  "ok"
+                   },
+                   {
+                       "id":  "cursor_api_key",
+                       "label":  "Cursor API (auto agents)",
+                       "action":  null,
+                       "required":  false,
+                       "detail":  "Configured",
+                       "status":  "ok"
+                   },
+                   {
+                       "id":  "anthropic_api_key",
+                       "label":  "Anthropic API (computer use)",
+                       "action":  null,
+                       "required":  false,
+                       "detail":  "Configured",
+                       "status":  "ok"
+                   },
+                   {
+                       "id":  "projects_path",
+                       "label":  "Projects folder",
+                       "action":  null,
+                       "required":  true,
+                       "detail":  "Configured",
+                       "status":  "ok"
+                   }
+               ],
+    "updated_at":  "2026-07-17T18:50:35.8810941Z",
+    "project":  "CreativePhotoEditor",
+    "ready":  true
+}

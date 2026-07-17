@@ -1,0 +1,18 @@
+---
+description: .cpe project file format and import/export rules
+globs: core/file-io/**
+alwaysApply: false
+---
+
+# File I/O — `.cpe` Format, Import, Export
+
+The `.cpe` project file schema is defined in ARCHITECTURE.md. That doc is the source of truth — if the schema changes, update ARCHITECTURE.md in the same PR, not after.
+
+## Rules
+- `.cpe` is a zip: `manifest.json` + `layers/{id}.webp`. Don't invent a second serialization path — if a new Layer type needs data the current schema can't hold, extend the schema, don't bolt on a parallel format.
+- **Save/Load touches the safety floor** (data loss risk) — per PROJECT_BRAIN.md's approval-by-exception model, flag material changes to save/load logic rather than pushing through silently.
+- Export (flatten to PNG/JPEG/WebP) is one-way and must never be confused with Save in code or UI copy — see TAXONOMY.md distinction between Export and Save.
+- Import creates a new Layer from an external file — it should go through the Command system like any other layer-adding action, so it's undoable.
+
+## Versioning
+`manifest.json` has a `version` field starting at 1. If you make a breaking schema change, bump it and write a migration path for old files — don't silently orphan existing `.cpe` files people have saved.

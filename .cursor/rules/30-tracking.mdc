@@ -1,0 +1,80 @@
+---
+description: Self-tracking rules for Forge. Always in effect. Defines which changelog to write to — global vs. per-project.
+globs:
+alwaysApply: true
+---
+
+# Tracking rules
+
+Forge tracks two separate changelogs. Writing to the wrong one is the most common
+tracking mistake — read this carefully.
+
+## Two changelogs, two scopes
+
+**`~/.forge/memory/forge-changelog.md` — global, Forge's own evolution**
+Write here when Forge itself changes:
+- A skill is ADDED, MODIFIED, or RETIRED
+- A role or rule file is changed
+- forge-start pulls an update from GitHub
+- A Skill Smith HEALTH-CHECK runs
+
+**`memory/forge-changelog.md` (in the current project) — per-project activity**
+Write here for everything that happens inside a project:
+- A skill is USED on a task
+- A DECISION is made about the project
+- forge-setup runs (SETUP)
+- Reusable code is PROMOTED to @nathanokh/codebase
+
+## Entry format (both files)
+```
+### YYYY-MM-DD HH:MM
+- TYPE: [ADDED|MODIFIED|RETIRED|HEALTH-CHECK] (global only)
+  OR
+- TYPE: [USED|DECISION|SETUP|PROMOTED] (per-project only)
+  target: [skill, role, or decision subject]
+  by: [role name]
+  project: [project name or "forge-itself"]
+  reason: [one phrase]
+```
+
+## When to update forge-graph.md
+The Skill Smith updates `~/.forge/memory/map/forge-graph.md` whenever a skill
+is added, modified, or retired. This is the global Forge map — not per-project.
+
+## When to update app-graph.md
+Architect creates `memory/map/app-graph.md` in the current project.
+Builder and Code Reviewer update node status. This is per-project only.
+
+## API usage tracking
+
+**Every time you call brave-search**, you MUST:
+1. Read `memory/usage/usage.json` (path relative to this project, or `~/.forge/memory/usage/usage.json` if not present locally).
+2. Increment `brave_search.calls_this_month` by 1.
+3. Append an entry to `brave_search.daily_log`: `{"date": "YYYY-MM-DD", "calls": N, "project": "name"}`.
+4. Update `brave_search.last_updated` to the current ISO timestamp.
+5. Write the file back.
+6. Calculate `pct = (calls_this_month / monthly_limit) * 100` and emit the appropriate warning below.
+
+**Every time you call github MCP** tools (create_issue, push, PR, etc.):
+- Increment `github.calls_this_month` by the number of API calls made.
+
+**Every session start**, log estimated token usage to `tokens.sessions`:
+`{"date": "YYYY-MM-DD", "project": "name", "estimated_tokens": N, "note": "brief task description"}`
+Estimate: count your context window size in tokens if possible; otherwise use 5,000 as a baseline per session.
+
+### Brave Search threshold warnings
+
+After updating `usage.json`, emit the matching line in chat before proceeding:
+
+| Threshold | Message to emit |
+|-----------|----------------|
+| >= 70% (700+ calls) | `[USAGE] Brave Search: 70% of monthly limit used (N/1000). Approaching limit.` |
+| >= 80% (800+ calls) | `[USAGE WARNING] Brave Search: 80% used (N/1000). Consider batching queries.` |
+| >= 90% (900+ calls) | `[USAGE ALERT] Brave Search: 90% used (N/1000). Use sparingly — 100 calls left.` |
+| >= 95% (950+ calls) | `[USAGE CRITICAL] Brave Search: 95% used (N/1000). Pause and check with Approver before continuing.` |
+| >= 99% (990+ calls) | `[USAGE LIMIT] Brave Search: 99% used (N/1000). STOP — do not call brave-search again this month without explicit Approver approval.` |
+
+At 95%+, you MUST ask the Approver whether to continue before making another Brave call.
+
+### Legacy: mcp-map.md
+Also note major usage milestones in `memory/map/mcp-map.md` at the end of a task — but `usage.json` is the live source of truth.

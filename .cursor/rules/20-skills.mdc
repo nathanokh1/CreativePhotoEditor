@@ -1,0 +1,34 @@
+---
+description: Skill discovery, sourcing, gap detection, and promotion. Always in effect.
+globs:
+alwaysApply: true
+---
+
+# Skill rules
+
+Skills are reusable capabilities stored as SKILL.md folders under `skills/`. They are
+the **how**; the agents are the **who**. Roles invoke skills; skills do not invoke each
+other. Skills load by progressive disclosure: name + description always visible, body
+only when needed, heavy resources only when used. This is how the team stays capable
+without burning context tokens.
+
+## Sourcing order (do not reinvent)
+Before building reusable logic:
+1. Scan the skills registry (`skills/README.md`).
+2. Check the curated upstream **addyosmani/agent-skills** and pull a matching skill if
+   one exists (copy it in, keep attribution).
+3. Check `@nathanokh/codebase`.
+4. Only if nothing fits, have the Skill Smith author a new skill from `_template`.
+
+## Loading
+Do not load all skills at once — it wastes context. Load only the skills relevant to
+the current phase (see the phase->skill->role table in `skills/README.md`).
+
+## Descriptions are triggers
+A skill's `description` must state BOTH what it does AND when to use it, leaning
+slightly pushy so it fires when relevant. Do not summarize the workflow steps into the
+description, or the agent may follow the summary instead of reading the full skill.
+
+## Promotion
+After building something reusable inline, flag it as a promotion candidate so the Skill
+Smith lifts it into a proper skill and registers it.

@@ -1,0 +1,57 @@
+---
+description: When the Approver says start using Forge, the agent runs forge-go — never tell them to run CLI manually.
+globs:
+alwaysApply: true
+---
+
+# Forge voice start
+
+The Approver should never need to run terminal commands for routine Forge setup.
+**You** run them.
+
+## Trigger phrases
+
+When the Approver says any of these (or close variants), run Forge bootstrap **immediately**
+via the Shell tool — do not instruct them to run commands themselves:
+
+- "start using Forge"
+- "use Forge"
+- "initialize Forge" / "init Forge"
+- "set up Forge on this project"
+- "wire Forge in"
+- "forge-go"
+
+## What to run (Windows)
+
+From the **project root**:
+
+```powershell
+forge-go.cmd
+```
+
+Fallback: `.\forge-go.cmd` or `forge-global\scripts\windows\forge-go.ps1`
+
+On macOS/Linux: `forge-go` or `bash forge-global/scripts/forge-go.sh`
+
+## After it completes
+
+1. Read `memory/ops/project.json` for `hub_url`
+2. Report Hub URL and Setup tab status
+3. Ask what they're building — do **not** ask them to run forge-go again
+
+## Once per project — not every chat
+
+| When | Who runs what |
+|------|----------------|
+| First time on a project | Agent runs `forge-go` (voice or auto) |
+| New chat, same project | **Nothing extra** — just work |
+| After PC reboot | Agent runs `forge-start` silently if needed |
+| New project folder | Say "start using Forge" once |
+
+## API keys
+
+| Key | Required? | Purpose |
+|-----|-----------|---------|
+| GitHub, Brave, Projects path | Yes | MCP tools |
+| Anthropic API | Optional | Desktop computer-use only — skip at forge-first-run |
+| Cursor API | Optional | Auto-spawn agents later — Hub works without it |

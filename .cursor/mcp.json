@@ -1,0 +1,51 @@
+{
+  "mcpServers": {
+    "agentmemory": {
+      "command": "C:\\Users\\Pheonix\\AppData\\Local\\Programs\\Python\\Python312\\Scripts\\memory-server.exe",
+      "args": [],
+      "description": "Forge Layer 0 — semantic memory RAG (mcp-memory-service). HTTP server: memory launch --port 8765"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp"]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${YOUR_PROJECTS_PATH}"
+      ]
+    },
+    "ssh-vm": {
+      "command": "npx",
+      "args": ["-y", "mcp-ssh"],
+      "env": {
+        "SSH_HOST": "${VM_IP}",
+        "SSH_USER": "ubuntu",
+        "SSH_KEY_PATH": "${USERPROFILE}\\.ssh\\forge-vm"
+      }
+    },
+    "computer-use": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/computer-use-mcp"],
+      "env": {
+        "ANTHROPIC_API_KEY": "${ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}

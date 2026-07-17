@@ -1,0 +1,19 @@
+---
+description: Tech stack and dependency conventions
+globs:
+alwaysApply: true
+---
+
+# Tech Stack
+
+- **Framework:** Next.js 14 (App Router), TypeScript strict mode.
+- **Rendering:** PixiJS (WebGL) — contained entirely inside `/core/render`. No other module imports `pixi.js`.
+- **UI state:** Zustand — mirrors LayerGraph state for React re-renders only. LayerGraph is the source of truth, Zustand is a read-optimized reflection of it. Never write app logic that treats the Zustand store as authoritative.
+- **Styling:** Tailwind CSS.
+- **File I/O:** `jszip` (or equivalent) for `.cpe` container read/write.
+
+## Before adding any new dependency
+Check `@nathanokh/codebase` first. If a component/util already exists there (panel shells, modals, color picker, drag handles), pull it in rather than reimplementing. If it doesn't exist but is clearly generic (not photo-editor-specific), flag it as a candidate to build once here and promote later — don't promote prematurely, prove it in this repo first.
+
+## Package manager / conventions
+Match whatever `@nathanokh/codebase` and nathanokh.com use (npm via GitHub Packages registry) unless told otherwise.

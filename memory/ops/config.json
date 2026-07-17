@@ -1,0 +1,12 @@
+{
+  "poll_interval_seconds": 60,
+  "max_runs_per_hour": 6,
+  "max_concurrent": 1,
+  "night_mode": {
+    "enabled": true,
+    "start": "22:00",
+    "end": "07:00"
+  },
+  "spawn_mode": "prompt_file",
+  "roles_enabled": ["ideation", "researcher", "architect", "builder", "code-reviewer", "skill-smith"]
+}

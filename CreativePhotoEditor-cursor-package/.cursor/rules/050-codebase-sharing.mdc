@@ -1,0 +1,15 @@
+---
+description: Rules for pulling from and contributing to @nathanokh/codebase
+globs:
+alwaysApply: true
+---
+
+# Shared Codebase Discipline
+
+This repo is standalone but bidirectional with `@nathanokh/codebase`:
+
+**Before building UI primitives, check the shared library first.** Likely candidates that may already exist: buttons, modal/dialog system, color picker, panel/toolbar shells, drag-resize handles, generic form controls. Don't reimplement what's already there.
+
+**When something built here proves generically useful** (not photo-editor-specific), it's a candidate to promote up to `@nathanokh/codebase` — but prove it in this repo first. Don't design components "for the shared library" speculatively; build for this project's actual need, then extract once it's stable and the shape is clear.
+
+If you can't verify what's currently in `@nathanokh/codebase` (e.g. no access in this session), say so explicitly rather than assuming it does or doesn't have something — false confidence here causes duplicate implementations.

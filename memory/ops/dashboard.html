@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forge Ops — Agent Control Room</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --accent: #7c6af7;
+      --green: #34d399;
+      --blue: #60a5fa;
+      --purple: #a78bfa;
+      --amber: #fbbf24;
+      --cyan: #22d3ee;
+      --orange: #fb923c;
+      --yellow: #facc15;
+      --violet: #c084fc;
+      --red: #ef4444;
+      --gray: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      background: var(--accent);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .orchestrator-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+
+    .orchestrator-bar .label { color: var(--muted); font-size: 12px; }
+    .orchestrator-bar .value { font-weight: 600; }
+
+    .grid-agents {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .agent-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(124, 106, 247, 0.15);
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .agent-name { font-weight: 600; font-size: 13px; }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge.idle { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+    .badge.offline { background: rgba(100, 116, 139, 0.2); color: var(--gray); }
+    .badge.working { background: rgba(124, 106, 247, 0.2); color: var(--accent); animation: pulse 2s infinite; }
+    .badge.researching { background: rgba(96, 165, 250, 0.2); color: var(--blue); animation: pulse 2s infinite; }
+    .badge.planning { background: rgba(167, 139, 250, 0.2); color: var(--purple); animation: pulse 2s infinite; }
+    .badge.building { background: rgba(251, 191, 36, 0.2); color: var(--amber); animation: pulse 2s infinite; }
+    .badge.testing { background: rgba(34, 211, 238, 0.2); color: var(--cyan); animation: pulse 2s infinite; }
+    .badge.reviewing { background: rgba(251, 146, 60, 0.2); color: var(--orange); animation: pulse 2s infinite; }
+    .badge.handoff { background: rgba(250, 204, 21, 0.2); color: var(--yellow); }
+    .badge.learning { background: rgba(192, 132, 252, 0.2); color: var(--violet); animation: pulse 2s infinite; }
+    .badge.blocked { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+    .badge.sleeping { background: rgba(100, 116, 139, 0.2); color: var(--gray); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
+
+    .agent-task {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .agent-meta {
+      font-size: 11px;
+      color: var(--gray);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .feed {
+      padding: 12px 16px;
+      max-height: 420px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .feed-entry {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feed-entry:last-child { border-bottom: none; }
+
+    .feed-time { color: var(--gray); font-size: 11px; }
+    .feed-role { font-weight: 600; color: var(--accent); }
+    .feed-body { color: var(--muted); margin-top: 4px; }
+
+    .events {
+      padding: 8px 0;
+      max-height: 420px;
+      overflow-y: auto;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: 11px;
+    }
+
+    .event-row {
+      padding: 6px 16px;
+      border-bottom: 1px solid rgba(46, 50, 80, 0.5);
+      display: flex;
+      gap: 8px;
+    }
+
+    .event-ts { color: var(--gray); flex-shrink: 0; }
+    .event-type { color: var(--cyan); flex-shrink: 0; }
+    .event-detail { color: var(--muted); }
+
+    #status-line {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .error-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+
+    .info-banner {
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid var(--blue);
+      color: var(--blue);
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .info-banner code {
+      background: var(--surface2);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="logo">FORGE</span> Ops Control Room</h1>
+    <div id="status-line">Loading…</div>
+  </header>
+
+  <div id="info-banner" class="info-banner" style="display:none"></div>
+  <div id="error-banner" class="error-banner" style="display:none"></div>
+
+  <div class="orchestrator-bar" id="orch-bar">
+    <span class="label">Orchestrator</span>
+    <span class="badge idle" id="orch-badge">—</span>
+    <span class="label">Runs/hr</span>
+    <span class="value" id="orch-runs">0</span>
+    <span class="label">Last poll</span>
+    <span class="value" id="orch-poll">—</span>
+  </div>
+
+  <div class="grid-agents" id="agents-grid"></div>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-header">Activity Feed</div>
+      <div class="feed" id="feed"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Event Log (raw)</div>
+      <div class="events" id="events"></div>
+    </div>
+  </div>
+
+  <script type="application/json" id="embedded-state">
+  {"orchestrator":{"status":"idle","since":"2026-06-27T00:00:00Z","last_poll":"2026-06-27T00:00:00Z","runs_this_hour":0},"agents":[{"role":"ideation","label":"Ideation","status":"idle","task":null,"since":"2026-06-27T00:00:00Z","artifact":"docs/brief.md"},{"role":"researcher","label":"Researcher","status":"idle","task":null,"since":"2026-06-27T00:00:00Z","artifact":"docs/research.md"},{"role":"architect","label":"Architect","status":"idle","task":null,"since":"2026-06-27T00:00:00Z","artifact":"docs/plan.md"},{"role":"builder","label":"Builder","status":"idle","task":null,"since":"2026-06-27T00:00:00Z","artifact":"docs/handoff.md"},{"role":"code-reviewer","label":"Code Reviewer","status":"idle","task":null,"since":"2026-06-27T00:00:00Z","artifact":"docs/review.md"},{"role":"skill-smith","label":"Skill Smith","status":"idle","task":null,"since":"2026-06-27T00:00:00Z","artifact":"skills/"}],"last_completed":{}}
+  </script>
+
+  <script>
+    const IS_FILE = window.location.protocol === 'file:';
+    const OPS_PORT = 8766;
+
+    const STATUS_LABELS = {
+      offline: 'Offline', idle: 'Online', working: 'Working',
+      researching: 'Researching', planning: 'Planning', building: 'Building',
+      testing: 'Testing', reviewing: 'Reviewing', handoff: 'Handoff',
+      learning: 'Learning', blocked: 'Blocked', sleeping: 'Resting'
+    };
+
+    const ACTIVE = ['working','researching','planning','building','testing','reviewing','learning'];
+
+    function embeddedState() {
+      const el = document.getElementById('embedded-state');
+      try { return JSON.parse(el.textContent); } catch { return null; }
+    }
+
+    function showInfo(msg) {
+      const el = document.getElementById('info-banner');
+      el.style.display = 'block';
+      el.innerHTML = msg;
+    }
+
+    function hideInfo() {
+      document.getElementById('info-banner').style.display = 'none';
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '—';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch { return iso; }
+    }
+
+    function parseFeedMarkdown(text) {
+      const entries = [];
+      const blocks = text.split(/^### /m).slice(1);
+      for (const block of blocks) {
+        const lines = block.trim().split('\n');
+        const header = lines[0] || '';
+        const body = lines.slice(1).join('\n').trim();
+        const m = header.match(/^(.+?) — (.+)$/);
+        entries.push({
+          time: m ? m[1].trim() : header,
+          role: m ? m[2].trim() : 'System',
+          body: body.replace(/\*\*/g, '')
+        });
+      }
+      return entries;
+    }
+
+    async function loadState() {
+      if (IS_FILE) return embeddedState();
+      try {
+        const r = await fetch('state.json?t=' + Date.now());
+        if (!r.ok) throw new Error('state.json not found');
+        return await r.json();
+      } catch {
+        return embeddedState();
+      }
+    }
+
+    async function loadFeed() {
+      try {
+        const r = await fetch('feed.md?t=' + Date.now());
+        if (!r.ok) return [];
+        const text = await r.text();
+        return parseFeedMarkdown(text);
+      } catch { return []; }
+    }
+
+    async function loadEvents() {
+      try {
+        const r = await fetch('events.jsonl?t=' + Date.now());
+        if (!r.ok) return [];
+        const text = await r.text();
+        return text.trim().split('\n').filter(Boolean).map(line => {
+          try { return JSON.parse(line); } catch { return null; }
+        }).filter(Boolean).slice(-30).reverse();
+      } catch { return []; }
+    }
+
+    function renderAgents(state) {
+      const grid = document.getElementById('agents-grid');
+      grid.innerHTML = '';
+      const agents = state.agents || [];
+      for (const a of agents) {
+        const card = document.createElement('div');
+        card.className = 'agent-card' + (ACTIVE.includes(a.status) ? ' active' : '');
+        const status = a.status || 'offline';
+        const label = STATUS_LABELS[status] || status;
+        card.innerHTML = `
+          <div class="agent-header">
+            <span class="agent-name">${a.label || a.role}</span>
+            <span class="badge ${status}">${label}</span>
+          </div>
+          <div class="agent-task">${a.task || 'No active task'}</div>
+          <div class="agent-meta">${a.artifact || ''} · since ${fmtTime(a.since)}</div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    function renderOrchestrator(state) {
+      const o = state.orchestrator || {};
+      const badge = document.getElementById('orch-badge');
+      const st = o.status || 'offline';
+      badge.className = 'badge ' + st;
+      badge.textContent = STATUS_LABELS[st] || st;
+      document.getElementById('orch-runs').textContent = o.runs_this_hour ?? 0;
+      document.getElementById('orch-poll').textContent = fmtTime(o.last_poll);
+    }
+
+    function renderFeed(entries) {
+      const el = document.getElementById('feed');
+      if (!entries.length) {
+        el.innerHTML = '<div class="feed-entry"><div class="feed-body">No feed entries yet.</div></div>';
+        return;
+      }
+      el.innerHTML = entries.map(e => `
+        <div class="feed-entry">
+          <div class="feed-time">${e.time}</div>
+          <div class="feed-role">${e.role}</div>
+          <div class="feed-body">${e.body}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderEvents(events) {
+      const el = document.getElementById('events');
+      if (!events.length) {
+        el.innerHTML = '<div class="event-row"><span class="event-detail">No events yet — orchestrator will write events.jsonl</span></div>';
+        return;
+      }
+      el.innerHTML = events.map(ev => `
+        <div class="event-row">
+          <span class="event-ts">${fmtTime(ev.ts)}</span>
+          <span class="event-type">${ev.type}</span>
+          <span class="event-detail">${ev.role || ''} ${ev.from ? ev.from + '→' + ev.to : ''} ${ev.task || ev.message || ''}</span>
+        </div>
+      `).join('');
+    }
+
+    async function refresh() {
+      try {
+        document.getElementById('error-banner').style.display = 'none';
+
+        if (IS_FILE) {
+          showInfo(
+            'Opened as <code>file://</code> — browsers block live data loading. ' +
+            'Run <code>forge-ops</code> from your project root for auto-refresh, or open ' +
+            '<a href="http://127.0.0.1:' + OPS_PORT + '/dashboard.html" style="color:var(--cyan)">http://127.0.0.1:' + OPS_PORT + '/dashboard.html</a> ' +
+            'if the ops server is already running. Showing embedded snapshot below.'
+          );
+        } else {
+          hideInfo();
+        }
+
+        const state = await loadState();
+        const feed = IS_FILE ? [] : await loadFeed();
+        const events = IS_FILE ? [] : await loadEvents();
+        renderOrchestrator(state);
+        renderAgents(state);
+        renderFeed(feed);
+        renderEvents(events);
+        document.getElementById('status-line').textContent =
+          'Updated ' + new Date().toLocaleTimeString() +
+          (IS_FILE ? ' · static snapshot' : ' · auto-refresh 5s');
+      } catch (e) {
+        document.getElementById('error-banner').style.display = 'block';
+        document.getElementById('error-banner').textContent = e.message;
+        document.getElementById('status-line').textContent = 'Error loading ops data';
+      }
+    }
+
+    refresh();
+    if (!IS_FILE) setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

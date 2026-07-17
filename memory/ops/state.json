@@ -1,0 +1,59 @@
+{
+  "orchestrator": {
+    "status": "idle",
+    "since": "2026-06-27T00:00:00Z",
+    "last_poll": "2026-06-27T20:22:58.023Z",
+    "runs_this_hour": 1
+  },
+  "agents": [
+    {
+      "role": "ideation",
+      "label": "Ideation",
+      "status": "idle",
+      "task": null,
+      "since": "2026-06-27T00:00:00Z",
+      "artifact": "docs/brief.md"
+    },
+    {
+      "role": "researcher",
+      "label": "Researcher",
+      "status": "researching",
+      "task": "Research prior art for brief",
+      "since": "2026-06-27T20:22:58.062Z",
+      "artifact": "docs/research.md"
+    },
+    {
+      "role": "architect",
+      "label": "Architect",
+      "status": "idle",
+      "task": null,
+      "since": "2026-06-27T00:00:00Z",
+      "artifact": "docs/plan.md"
+    },
+    {
+      "role": "builder",
+      "label": "Builder",
+      "status": "idle",
+      "task": null,
+      "since": "2026-06-27T00:00:00Z",
+      "artifact": "docs/handoff.md"
+    },
+    {
+      "role": "code-reviewer",
+      "label": "Code Reviewer",
+      "status": "idle",
+      "task": null,
+      "since": "2026-06-27T00:00:00Z",
+      "artifact": "docs/review.md"
+    },
+    {
+      "role": "skill-smith",
+      "label": "Skill Smith",
+      "status": "idle",
+      "task": null,
+      "since": "2026-06-27T00:00:00Z",
+      "artifact": "skills/"
+    }
+  ],
+  "last_completed": {}
+}

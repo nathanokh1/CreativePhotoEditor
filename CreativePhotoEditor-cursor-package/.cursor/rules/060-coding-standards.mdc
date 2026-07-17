@@ -1,0 +1,14 @@
+---
+description: General coding standards for this project
+globs:
+alwaysApply: true
+---
+
+# Coding Standards
+
+- TypeScript strict mode — no `any` without a comment explaining why it's unavoidable.
+- KISS over clever. Short, purposeful comments explaining *why*, not restating *what* the code does.
+- Function/variable names use TAXONOMY.md terms exactly (`layer`, not `element` or `item`; `Document`, not `Project` when referring to the in-memory editable state).
+- One concern per file in `/core/*` modules — don't let `layer-graph.ts` grow into a dumping ground for render logic too.
+- Prefer composition over inheritance for Tools and Commands — shared behavior via helper functions, not deep class hierarchies.
+- No commented-out dead code left in commits. Delete it — git history has it if needed.

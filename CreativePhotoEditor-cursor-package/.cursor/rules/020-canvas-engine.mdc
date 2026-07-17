@@ -1,0 +1,22 @@
+---
+description: Rendering engine and LayerGraph rules
+globs: core/render/**,core/layer-graph/**
+alwaysApply: false
+---
+
+# Canvas / Rendering Engine
+
+Engine choice: **PixiJS (WebGL) core + custom `LayerGraph` scene-graph abstraction.** This was a deliberate call, not a placeholder — see PROJECT_BRAIN.md decision log for the reasoning (GPU performance ceiling vs. layer ergonomics tradeoff). Don't swap in Konva/Fabric "for convenience" on a feature — build the ergonomics into `LayerGraph` instead.
+
+## Boundaries
+- `pixi.js` is imported ONLY inside `/core/render`. If you find yourself importing it elsewhere, that's a sign the abstraction is leaking — fix the abstraction, don't just add the import.
+- `LayerGraph` (`/core/layer-graph`) is pure data + methods. No rendering calls, no Pixi types, no DOM/canvas references. It should be testable with zero browser APIs.
+- `/core/render` subscribes to `LayerGraph` changes and re-composites. It does not own layer state — it reflects it.
+
+## Adding a new Layer type (e.g. text, vector)
+1. Extend the `LayerGraph` data model and the `.cpe` manifest schema in ARCHITECTURE.md — update the doc, don't just change code.
+2. Add rendering support in `/core/render` for the new type.
+3. Don't special-case the new type throughout the React shell — it should flow through the same Layers Panel / Command system as raster layers.
+
+## Performance
+Large raster images are the main perf risk (see ROADMAP.md Phase 3). Don't optimize prematurely in Phase 1, but don't write anything that assumes small fixed-size images either — e.g. don't hardcode canvas dimensions, don't load full-res images into multiple duplicate buffers without reason.

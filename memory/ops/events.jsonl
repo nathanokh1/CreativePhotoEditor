@@ -1,0 +1,4 @@
+{"type":"poll","message":"orchestrator poll cycle","ts":"2026-06-27T20:22:38.833Z"}
+{"type":"blocked","role":"researcher","message":"Safety floor: prompt matches blocked pattern /delete\\s+(all|database|data)/i","ts":"2026-06-27T20:22:38.853Z"}
+{"type":"poll","message":"orchestrator poll cycle","ts":"2026-06-27T20:22:58.046Z"}
+{"type":"handoff","role":"researcher","rule_id":"R2","task":"Research prior art for brief","to":"researching","ts":"2026-06-27T20:22:58.063Z"}

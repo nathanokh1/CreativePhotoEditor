@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Forge Hub</title>
+  <style>
+    :root {
+      --bg: #0a0c10; --surface: #141820; --surface2: #1c2230;
+      --border: #2a3348; --text: #e8ecf4; --muted: #8b95ad;
+      --accent: #7c6af7; --green: #34d399; --red: #f87171;
+      --amber: #fbbf24; --blue: #60a5fa; --cyan: #22d3ee;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      background: linear-gradient(135deg, var(--accent), #5b4cdb);
+      color: white; font-weight: 800; font-size: 14px; padding: 6px 10px;
+      border-radius: 8px; letter-spacing: 1px;
+    }
+    h1 { font-size: 22px; font-weight: 600; }
+    .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    nav { display: flex; gap: 8px; }
+    nav button {
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+    }
+    nav button.active {
+      background: var(--accent); border-color: var(--accent); color: white;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .hero {
+      background: linear-gradient(135deg, #1a1530 0%, var(--surface) 100%);
+      border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .hero h2 { font-size: 28px; margin-bottom: 8px; }
+    .hero p { color: var(--muted); line-height: 1.6; max-width: 640px; }
+    .readiness {
+      display: flex; align-items: center; gap: 16px; margin-top: 20px;
+    }
+    .ring {
+      width: 56px; height: 56px; border-radius: 50%;
+      border: 3px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 16px;
+    }
+    .ring.ok { border-color: var(--green); color: var(--green); }
+    .ring.warn { border-color: var(--amber); color: var(--amber); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 18px;
+    }
+    .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); margin-bottom: 12px; }
+    .check {
+      display: flex; align-items: flex-start; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .check:last-child { border-bottom: none; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .dot.ok { background: var(--green); }
+    .dot.miss { background: var(--red); }
+    .check-label { font-weight: 600; font-size: 13px; }
+    .check-detail { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .check-action {
+      font-size: 11px; color: var(--cyan); margin-top: 4px;
+    }
+    .steps { list-style: none; }
+    .steps li {
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .steps .num {
+      background: var(--surface2); width: 28px; height: 28px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px; flex-shrink: 0;
+    }
+    .cta {
+      display: inline-block; margin-top: 20px; background: var(--accent);
+      color: white; text-decoration: none; padding: 12px 24px; border-radius: 10px;
+      font-weight: 600; font-size: 14px;
+    }
+    .cta:hover { filter: brightness(1.1); }
+    .agents { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .agent {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+    }
+    .agent.active { border-color: var(--accent); box-shadow: 0 0 16px rgba(124,106,247,.2); }
+    .agent-name { font-weight: 600; font-size: 13px; }
+    .badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px;
+      text-transform: uppercase; margin-top: 6px; display: inline-block;
+    }
+    .badge.idle { background: rgba(52,211,153,.15); color: var(--green); }
+    .badge.researching, .badge.building, .badge.working, .badge.planning,
+    .badge.reviewing, .badge.testing, .badge.learning {
+      background: rgba(124,106,247,.2); color: var(--accent); animation: pulse 2s infinite;
+    }
+    .badge.blocked { background: rgba(248,113,113,.2); color: var(--red); }
+  .badge.offline, .badge.sleeping { background: rgba(139,149,173,.2); color: var(--muted); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+    .agent-task { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.3; }
+    .feed-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .feed-time { font-size: 11px; color: var(--muted); }
+    .feed-role { font-weight: 600; color: var(--accent); font-size: 13px; }
+    .feed-body { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    #status-line { font-size: 12px; color: var(--muted); }
+    a { color: var(--cyan); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <span class="logo">FORGE</span>
+        <div>
+          <h1 id="project-name">Forge Hub</h1>
+          <div class="sub" id="project-path">Loading project…</div>
+        </div>
+      </div>
+      <nav>
+        <button class="active" data-tab="home">Home</button>
+        <button data-tab="setup">Setup</button>
+        <button data-tab="control">Control Room</button>
+      </nav>
+      <div id="status-line">Refreshing…</div>
+    </header>
+
+    <!-- HOME -->
+    <section class="panel active" id="tab-home">
+      <div class="hero">
+        <h2>Your AI dev team is wired in.</h2>
+        <p>
+          Forge gives this project six agents, skills, memory, and an orchestrator.
+          Open Cursor in this folder and describe what you're building — the team handles
+          research, planning, building, and review. Watch progress here in the Control Room.
+        </p>
+        <div class="readiness">
+          <div class="ring warn" id="ready-ring">—</div>
+          <div>
+            <strong id="ready-label">Checking connections…</strong>
+            <div class="sub" id="ready-sub">Forge Hub shows what's connected and what's missing.</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Start here</h3>
+          <ol class="steps">
+            <li><span class="num">1</span><div><strong>Setup tab</strong> — connect any missing keys (one-time).</div></li>
+            <li><span class="num">2</span><div><strong>Open Cursor</strong> in this project folder.</div></li>
+            <li><span class="num">3</span><div><strong>Tell the agent</strong> your idea or today's task.</div></li>
+            <li><span class="num">4</span><div><strong>Control Room</strong> — watch agents work in real time.</div></li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>What's included</h3>
+          <div class="check"><span class="dot ok"></span><div><div class="check-label">6 agents</div><div class="check-detail">Ideation → Research → Architect → Builder → Reviewer → Skill Smith</div></div></div>
+          <div class="check"><span class="dot ok"></span><div><div class="check-label">Skills & playbooks</div><div class="check-detail">Reusable workflows in <code>skills/</code></div></div></div>
+          <div class="check"><span class="dot ok"></span><div><div class="check-label">Memory & backlog</div><div class="check-detail">Persists decisions across sessions</div></div></div>
+          <div class="check"><span class="dot ok"></span><div><div class="check-label">Orchestrator</div><div class="check-detail">Queues the next agent automatically</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETUP -->
+    <section class="panel" id="tab-setup">
+      <div class="hero" style="margin-bottom:20px">
+        <h2>Connections</h2>
+        <p>Forge needs a few keys to give agents full capability. Run <code>forge-first-run</code> in PowerShell to set them permanently, then restart Cursor.</p>
+      </div>
+      <div class="card">
+        <h3>Checklist</h3>
+        <div id="checks-list">Loading…</div>
+      </div>
+      <p style="margin-top:16px;color:var(--muted);font-size:13px">
+        After setting keys: restart Cursor so MCP servers pick them up. Then refresh this page.
+      </p>
+    </section>
+
+    <!-- CONTROL ROOM -->
+    <section class="panel" id="tab-control">
+      <div class="card" style="margin-bottom:16px">
+        <h3>Agent roster</h3>
+        <div class="agents" id="agents-grid"></div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Activity feed</h3>
+          <div id="feed"></div>
+        </div>
+        <div class="card">
+          <h3>Queued job</h3>
+          <div id="queue" style="font-size:13px;color:var(--muted)">None</div>
+          <p style="margin-top:12px;font-size:12px;color:var(--muted)">
+            When a job is queued, paste <code>memory/ops/next-prompt.md</code> into Cursor
+            (auto-spawn coming in Phase 2 with Cursor API key).
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STATUS = {
+      idle:'Online', offline:'Offline', working:'Working', researching:'Researching',
+      planning:'Planning', building:'Building', testing:'Testing', reviewing:'Reviewing',
+      learning:'Learning', blocked:'Blocked', sleeping:'Resting', handoff:'Handoff'
+    };
+    const ACTIVE = ['working','researching','planning','building','testing','reviewing','learning'];
+
+    document.querySelectorAll('nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    async function loadJson(file) {
+      const r = await fetch(file + '?t=' + Date.now());
+      if (!r.ok) return null;
+      return r.json();
+    }
+
+    async function loadText(file) {
+      const r = await fetch(file + '?t=' + Date.now());
+      if (!r.ok) return '';
+      return r.text();
+    }
+
+    function renderChecks(conn) {
+      const el = document.getElementById('checks-list');
+      if (!conn?.checks) { el.textContent = 'No connection data.'; return; }
+      el.innerHTML = conn.checks.map(c => `
+        <div class="check">
+          <span class="dot ${c.status === 'ok' ? 'ok' : 'miss'}"></span>
+          <div>
+            <div class="check-label">${c.label}${c.required ? '' : ' (optional)'}</div>
+            <div class="check-detail">${c.detail || ''}</div>
+            ${c.action && c.status !== 'ok' ? `<div class="check-action">→ ${c.action}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      const ok = conn.checks.filter(c => c.required && c.status === 'ok').length;
+      const req = conn.checks.filter(c => c.required).length;
+      const pct = req ? Math.round((ok / req) * 100) : 0;
+      const ring = document.getElementById('ready-ring');
+      ring.textContent = pct + '%';
+      ring.className = 'ring ' + (conn.ready ? 'ok' : 'warn');
+      document.getElementById('ready-label').textContent = conn.ready
+        ? 'All required connections ready'
+        : `${req - ok} connection(s) still needed`;
+      document.getElementById('ready-sub').textContent = conn.ready
+        ? 'Open Cursor and start building.'
+        : 'Complete Setup tab, restart Cursor, refresh here.';
+    }
+
+    function renderAgents(state) {
+      const grid = document.getElementById('agents-grid');
+      grid.innerHTML = (state?.agents || []).map(a => {
+        const st = a.status || 'offline';
+        return `<div class="agent ${ACTIVE.includes(st) ? 'active' : ''}">
+          <div class="agent-name">${a.label || a.role}</div>
+          <span class="badge ${st}">${STATUS[st] || st}</span>
+          <div class="agent-task">${a.task || 'Standing by'}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function parseFeed(text) {
+      return text.split(/^### /m).slice(1).map(block => {
+        const lines = block.trim().split('\n');
+        const m = lines[0].match(/^(.+?) — (.+)$/);
+        return { time: m?.[1] || lines[0], role: m?.[2] || 'System', body: lines.slice(1).join('\n').replace(/\*\*/g,'') };
+      }).slice(0, 15);
+    }
+
+    function renderFeed(entries) {
+      const el = document.getElementById('feed');
+      if (!entries.length) { el.innerHTML = '<div class="feed-body">No activity yet.</div>'; return; }
+      el.innerHTML = entries.map(e => `
+        <div class="feed-item">
+          <div class="feed-time">${e.time}</div>
+          <div class="feed-role">${e.role}</div>
+          <div class="feed-body">${e.body}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderQueue(queue) {
+      const el = document.getElementById('queue');
+      const job = queue?.pending?.[0];
+      if (!job) { el.textContent = 'No job queued — orchestrator is watching backlog + docs.'; return; }
+      el.innerHTML = `<strong>${job.role}</strong>: ${job.task}<br><span style="font-size:11px">Rule ${job.rule_id} → ${job.artifact}</span>`;
+    }
+
+    async function refresh() {
+      const project = await loadJson('project.json');
+      const conn = await loadJson('connections.json');
+      const state = await loadJson('state.json');
+      const queue = await loadJson('queue.json');
+      const feedText = await loadText('feed.md');
+
+      if (project) {
+        document.getElementById('project-name').textContent = project.name || 'Forge Hub';
+        document.getElementById('project-path').textContent = project.path || '';
+      }
+      if (conn) renderChecks(conn);
+      if (state) renderAgents(state);
+      if (queue) renderQueue(queue);
+      renderFeed(parseFeed(feedText));
+      document.getElementById('status-line').textContent =
+        'Updated ' + new Date().toLocaleTimeString() + ' · auto-refresh 5s';
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
