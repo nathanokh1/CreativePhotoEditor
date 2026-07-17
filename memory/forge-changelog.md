@@ -21,3 +21,10 @@ Related: [[capability-map]] | [[backlog]]
   by: builder
   project: CreativePhotoEditor
   reason: App lives at repo root; Forge tooling in /forge is gitignored (has its own repo). Vercel for web (main → Production, dev → Preview). Bumped Next to 14.2.35 to clear the 14.2.15 security advisory.
+
+### 2026-07-17 11:55
+- TYPE: DECISION
+  target: Vercel deployment wired to GitHub (Dev + Production lines)
+  by: builder
+  project: CreativePhotoEditor
+  reason: Vercel project "creativephotoeditor" (team nathan-okh-s-projects) linked to github.com/nathanokh1/CreativePhotoEditor. Production = main → https://creativephotoeditor.vercel.app (READY). Dev = dev branch → Preview. Direct file-tree/CLI-from-disk deploys failed (incomplete tree / local .obsidian cruft); git-sourced builds are clean and are the standing deploy path. Railway not yet configured (no backend needed for MVP — pure client-side editor).
