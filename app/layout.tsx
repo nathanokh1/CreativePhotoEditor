@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "CreativePhotoEditor — free browser photo editor",
   description:
     "A free, browser-first photo editor. Layers, move, resize, blend modes and export — no install, your images never leave your device.",
-  keywords: ["photo editor", "free photoshop alternative", "layers", "browser editor"],
+  keywords: ["photo editor", "free photo editor", "image editor", "layers", "browser editor"],
 };
 
 export const viewport: Viewport = {

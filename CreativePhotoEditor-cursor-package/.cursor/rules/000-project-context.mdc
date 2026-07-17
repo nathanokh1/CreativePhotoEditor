@@ -6,7 +6,7 @@ alwaysApply: true
 
 # CreativePhotoEditor — Project Context
 
-This is a browser-first, simplified Photoshop alternative. Core loop: import images → stack/edit on layers → cut/paste/resize → export or save project.
+This is a browser-first, streamlined photo editor. Core loop: import images → stack/edit on layers → cut/paste/resize → export or save project.
 
 Before doing anything else in a session:
 1. Read `/PROJECT_BRAIN.md` at repo root — decisions log, principles, open questions.
@@ -15,4 +15,4 @@ Before doing anything else in a session:
 
 This project follows Forge's approval-by-exception model: don't stop for confirmation on routine implementation work. Do stop for: kickoff of a new module, a material architectural change, a direction decision not already covered in PROJECT_BRAIN.md, or anything touching the safety floor (data loss risk — e.g. changes to the `.cpe` save/load path).
 
-KISS. If a Photoshop feature isn't in ROADMAP.md's current phase, it doesn't belong in this PR.
+KISS. If a pro-editor feature isn't in ROADMAP.md's current phase, it doesn't belong in this PR.

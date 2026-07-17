@@ -4,7 +4,7 @@ Paste this at the start of a new Cursor Agent session to re-orient without manua
 
 ---
 
-You're working on **CreativePhotoEditor** — a browser-first, simplified Photoshop alternative (layers, cut/paste, resize/scale, export/save). Before doing anything:
+You're working on **CreativePhotoEditor** — a browser-first, streamlined photo editor (layers, cut/paste, resize/scale, export/save). Before doing anything:
 
 1. Read `/PROJECT_BRAIN.md` — decisions log, principles, current open questions.
 2. Read `/TAXONOMY.md` — canonical terms, use them exactly.

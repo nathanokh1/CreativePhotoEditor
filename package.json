@@ -2,7 +2,7 @@
   "name": "creative-photo-editor",
   "version": "0.1.0",
   "private": true,
-  "description": "A free, browser-first, simplified Photoshop alternative.",
+  "description": "A free, browser-first, streamlined photo editor.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

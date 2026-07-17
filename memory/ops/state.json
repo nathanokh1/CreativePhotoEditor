@@ -2,16 +2,16 @@
   "orchestrator": {
     "status": "idle",
     "since": "2026-06-27T00:00:00Z",
-    "last_poll": "2026-06-27T20:22:58.023Z",
-    "runs_this_hour": 1
+    "last_poll": "2026-07-17T19:34:59.525Z",
+    "runs_this_hour": 3
   },
   "agents": [
     {
       "role": "ideation",
       "label": "Ideation",
-      "status": "idle",
-      "task": null,
-      "since": "2026-06-27T00:00:00Z",
+      "status": "working",
+      "task": "Sharpen idea into scoped brief",
+      "since": "2026-07-17T19:34:59.530Z",
       "artifact": "docs/brief.md"
     },
     {

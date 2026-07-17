@@ -16,3 +16,12 @@ Waiting for Phase 1 implementation. See `docs/plan.md`.
 
 ### 2026-06-27 20:22 — Orchestrator ↔
 Queued **researcher** (R2): Research prior art for brief. Prompt written to `memory/ops/next-prompt.md`.
+
+### 2026-07-17 19:33 — Orchestrator ↔
+Queued **ideation** (R1): Sharpen idea into scoped brief. Prompt written to `memory/ops/next-prompt.md`.
+
+### 2026-07-17 19:33 — Orchestrator ↔
+Queued **ideation** (R1): Sharpen idea into scoped brief. Prompt written to `memory/ops/next-prompt.md`.
+
+### 2026-07-17 19:34 — Orchestrator ↔
+Queued **ideation** (R1): Sharpen idea into scoped brief. Prompt written to `memory/ops/next-prompt.md`.

@@ -31,7 +31,7 @@ Goal: import an image, put it on a layer, move/resize it, add a second layer, ex
 ## Phase 3 — Performance & Polish
 - Large image handling (tiling/downsampling strategy — don't let a 40MP photo tank the browser)
 - Undo/redo depth tuning, possibly persist history within a session
-- Keyboard shortcuts (Photoshop-familiar where sensible: Ctrl+Z, Ctrl+C/V, etc.)
+- Keyboard shortcuts (industry-standard where sensible: Ctrl+Z, Ctrl+C/V, etc.)
 - PWA/offline capability
 
 ## Phase 4 — Windows Desktop

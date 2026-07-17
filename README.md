@@ -1,6 +1,6 @@
 # CreativePhotoEditor
 
-A **free**, browser-first, simplified Photoshop alternative. Import images, stack
+A **free**, browser-first, streamlined photo editor. Import images, stack
 them on layers, move / resize, blend, and export a clean flattened image — with
 full undo/redo. Nothing to install and your images never leave your device.
 

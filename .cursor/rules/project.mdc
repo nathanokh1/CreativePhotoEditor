@@ -5,7 +5,7 @@ alwaysApply: true
 ---
 # Project: CreativePhotoEditor
 
-A free, browser-first, simplified Photoshop alternative (layers, move/resize,
+A free, browser-first, streamlined photo editor (layers, move/resize,
 blend, export). Browser is the MVP; Windows/mac/mobile come later by wrapping the
 same browser core. Full design docs live in `CreativePhotoEditor-cursor-package/`
 (PROJECT_BRAIN, ARCHITECTURE, ROADMAP, TAXONOMY) — read those before large work.

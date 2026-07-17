@@ -80,7 +80,7 @@ export default function Home() {
             </span>
           </h1>
           <p className="mt-6 max-w-xl text-balance text-lg text-ink-dim">
-            Layers, cut & paste, resize, blend modes and export — the 20% of Photoshop you actually
+            Layers, cut & paste, resize, blend modes and export — the essentials you actually
             use, with none of the price tag. Nothing to install. Your images never leave your device.
           </p>
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">

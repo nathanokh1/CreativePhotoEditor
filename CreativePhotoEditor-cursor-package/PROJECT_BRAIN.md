@@ -6,9 +6,9 @@
 
 ## 1. What This Is
 
-A super-simple, web-first Photoshop alternative. Not trying to be Photoshop. Trying to be the 20% of Photoshop that covers 80% of what people actually do: bring in images, stack them on layers, cut/paste/resize/move things around, and export a clean flattened image.
+A super-simple, web-first photo editor. Not trying to be a full pro suite. Trying to be the 20% of a pro editor that covers 80% of what people actually do: bring in images, stack them on layers, cut/paste/resize/move things around, and export a clean flattened image.
 
-**Not building (yet, maybe never):** RAW processing, CMYK/print workflows, plugin ecosystem, 3D, video timeline, AI generative fill. If a feature request smells like "full Photoshop parity," it's out of scope until explicitly re-opened.
+**Not building (yet, maybe never):** RAW processing, CMYK/print workflows, plugin ecosystem, 3D, video timeline, AI generative fill. If a feature request smells like "full pro-suite parity," it's out of scope until explicitly re-opened.
 
 ## 2. Platform Sequence
 

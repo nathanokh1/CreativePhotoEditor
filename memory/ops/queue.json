@@ -1,13 +1,13 @@
 {
   "pending": [
     {
-      "rule_id": "R2",
-      "role": "researcher",
-      "status": "researching",
-      "artifact": "docs/research.md",
-      "task": "Research prior art for brief",
-      "prompt": "# Forge Orchestrator — researcher\n\nTask: Research prior art for brief\nTarget artifact: docs/research.md\n\nYou are the **researcher** agent. Read upstream docs, do the work, write your output.\n- docs/brief.md\n\n## Read first\n- `memory/map/doc-index.md` if orienting\n- Upstream docs in `docs/` per your agent definition\n\n## Write\n- docs/research.md\n- Log USED entries to `memory/forge-changelog.md`\n- Append a line to `memory/ops/feed.md` when you start and finish\n\n## Safety\nDo not deploy, push, delete data, or touch secrets without Approver approval."
+      "rule_id": "R1",
+      "role": "ideation",
+      "status": "working",
+      "artifact": "docs/brief.md",
+      "task": "Sharpen idea into scoped brief",
+      "prompt": "# Forge Orchestrator — ideation\n\nTask: Sharpen idea into scoped brief\nTarget artifact: docs/brief.md\n\nYou are the **ideation** agent. Read upstream docs, do the work, write your output.\n\n## Read first\n- `memory/map/doc-index.md` if orienting\n- Upstream docs in `docs/` per your agent definition\n\n## Write\n- docs/brief.md\n- Log USED entries to `memory/forge-changelog.md`\n- Append a line to `memory/ops/feed.md` when you start and finish\n\n## Safety\nDo not deploy, push, delete data, or touch secrets without Approver approval."
     }
   ],
-  "updated_at": "2026-06-27T20:22:58.052Z"
+  "updated_at": "2026-07-17T19:34:59.528Z"
 }
