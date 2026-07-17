@@ -1,5 +1,6 @@
 import { HandTool } from "./hand-tool";
 import { MoveTool } from "./move-tool";
+import { SelectionRectTool } from "./selection-rect-tool";
 import { PointerSample, Tool, ToolContext, ToolId } from "./tool";
 import { TransformTool } from "./transform-tool";
 
@@ -7,10 +8,13 @@ import { TransformTool } from "./transform-tool";
 export class ToolManager {
   private tools = new Map<ToolId, Tool>();
   private activeId: ToolId;
+  private transformTool: TransformTool;
 
   constructor(private ctx: ToolContext) {
+    this.transformTool = new TransformTool();
     this.register(new MoveTool());
-    this.register(new TransformTool());
+    this.register(this.transformTool);
+    this.register(new SelectionRectTool());
     this.register(new HandTool());
     this.activeId = "move";
   }
@@ -32,7 +36,19 @@ export class ToolManager {
   }
 
   setActive(id: ToolId): void {
-    if (this.tools.has(id)) this.activeId = id;
+    if (!this.tools.has(id)) return;
+    this.activeId = id;
+    const showHandles = id === "transform";
+    this.ctx.renderer.setShowTransformHandles(showHandles);
+    if (!showHandles) this.ctx.renderer.setCursorOverride(null);
+  }
+
+  setLockAspect(lock: boolean): void {
+    this.transformTool.lockAspect = lock;
+  }
+
+  getLockAspect(): boolean {
+    return this.transformTool.lockAspect;
   }
 
   pointerDown(pt: PointerSample): void {

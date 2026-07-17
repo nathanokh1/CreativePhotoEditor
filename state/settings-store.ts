@@ -10,9 +10,18 @@ interface SettingsState {
   tooltipDelay: number;
   /** Snap layer dragging to whole pixels. */
   pixelSnap: boolean;
+  /**
+   * When importing the first image into an empty Document, resize the canvas
+   * to match the image dimensions.
+   */
+  fitCanvasToFirstImport: boolean;
+  /** Corner handles keep aspect ratio unless Shift is held (Transform tool). */
+  lockAspectRatio: boolean;
   setShowTooltips: (v: boolean) => void;
   setTooltipDelay: (v: number) => void;
   setPixelSnap: (v: boolean) => void;
+  setFitCanvasToFirstImport: (v: boolean) => void;
+  setLockAspectRatio: (v: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -21,9 +30,13 @@ export const useSettings = create<SettingsState>()(
       showTooltips: true,
       tooltipDelay: 350,
       pixelSnap: true,
+      fitCanvasToFirstImport: true,
+      lockAspectRatio: true,
       setShowTooltips: (v) => set({ showTooltips: v }),
       setTooltipDelay: (v) => set({ tooltipDelay: v }),
       setPixelSnap: (v) => set({ pixelSnap: v }),
+      setFitCanvasToFirstImport: (v) => set({ fitCanvasToFirstImport: v }),
+      setLockAspectRatio: (v) => set({ lockAspectRatio: v }),
     }),
     { name: "cpe-settings" },
   ),

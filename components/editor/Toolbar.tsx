@@ -1,6 +1,6 @@
 "use client";
 
-import { Hand, Maximize, Move, Scaling, ZoomIn, ZoomOut } from "lucide-react";
+import { Hand, Maximize, Move, Scaling, SquareDashedMousePointer, ZoomIn, ZoomOut } from "lucide-react";
 import { ToolId } from "@/core";
 import { useEditor } from "@/state/editor-store";
 import { IconButton } from "@/components/ui/IconButton";
@@ -22,9 +22,17 @@ const TOOLS: {
   {
     id: "transform",
     label: "Transform",
-    description: "Scale the active layer from its center by dragging outward or inward.",
+    description:
+      "Drag the white corner/edge handles to resize. Hold Shift to toggle aspect lock. Drag inside the layer to move it.",
     shortcut: "T",
     icon: <Scaling size={18} />,
+  },
+  {
+    id: "select",
+    label: "Select",
+    description: "Drag a rectangle to select a region. Then use Ctrl+C / Ctrl+X to copy or cut that region.",
+    shortcut: "M",
+    icon: <SquareDashedMousePointer size={18} />,
   },
   {
     id: "hand",

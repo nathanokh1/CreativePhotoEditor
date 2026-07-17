@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Eye, EyeOff, Layers, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Layers, Trash2 } from "lucide-react";
 import { BlendMode } from "@/core";
 import { useEditor } from "@/state/editor-store";
 import { Slider } from "@/components/ui/Slider";
@@ -24,6 +24,8 @@ export function LayersPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [liveOpacity, setLiveOpacity] = useState<{ id: string; v: number } | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const active = layers.find((l) => l.id === activeId);
 
@@ -35,7 +37,6 @@ export function LayersPanel() {
         <span className="ml-auto text-xs text-ink-faint">{layers.length}</span>
       </div>
 
-      {/* Active layer properties */}
       {active && (
         <div className="space-y-3 border-b border-panel-border px-4 py-3">
           <div>
@@ -52,7 +53,6 @@ export function LayersPanel() {
                 setLiveOpacity({ id: active.id, v });
                 const r = useEditor.getState().engine?.getRenderer();
                 const layer = useEditor.getState().engine?.graph.getLayer(active.id);
-                // Live visual feedback without spamming the history stack.
                 if (layer && r) {
                   layer.opacity = v;
                   r.clearPreview();
@@ -88,7 +88,6 @@ export function LayersPanel() {
         </div>
       )}
 
-      {/* Layer list (top-most first) */}
       <div className="flex-1 overflow-y-auto p-2">
         {layers.length === 0 && (
           <p className="px-2 py-8 text-center text-xs text-ink-faint">
@@ -101,12 +100,36 @@ export function LayersPanel() {
             return (
               <li
                 key={layer.id}
+                draggable
+                onDragStart={(e) => {
+                  setDragId(layer.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", layer.id);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverIndex(index);
+                }}
+                onDragLeave={() => setDragOverIndex(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const fromId = dragId || e.dataTransfer.getData("text/plain");
+                  if (fromId) reorderLayer(fromId, index);
+                  setDragId(null);
+                  setDragOverIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setDragOverIndex(null);
+                }}
                 onClick={() => selectLayer(layer.id)}
                 className={cn(
-                  "group flex items-center gap-2 rounded-lg border px-2 py-2 transition-colors",
+                  "group flex cursor-grab items-center gap-2 rounded-lg border px-2 py-2 transition-colors active:cursor-grabbing",
                   isActive
                     ? "border-accent/50 bg-accent/10"
                     : "border-transparent hover:border-panel-border hover:bg-panel-raised/50",
+                  dragOverIndex === index && dragId !== layer.id && "border-accent/40 bg-accent/5",
+                  dragId === layer.id && "opacity-50",
                 )}
               >
                 <Tooltip label={layer.visible ? "Hide layer" : "Show layer"} side="left">
@@ -121,6 +144,13 @@ export function LayersPanel() {
                     {layer.visible ? <Eye size={15} /> : <EyeOff size={15} />}
                   </button>
                 </Tooltip>
+
+                <div className="h-9 w-9 shrink-0 overflow-hidden rounded border border-panel-border bg-panel-sunken">
+                  {layer.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={layer.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                  ) : null}
+                </div>
 
                 {editingId === layer.id ? (
                   <input
@@ -152,46 +182,22 @@ export function LayersPanel() {
                       "min-w-0 flex-1 truncate text-xs",
                       layer.visible ? "text-ink" : "text-ink-faint line-through",
                     )}
-                    title="Double-click to rename"
+                    title="Double-click to rename · drag to reorder"
                   >
                     {layer.name}
                   </span>
                 )}
 
-                <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      reorderLayer(layer.id, Math.max(0, index - 1));
-                    }}
-                    disabled={index === 0}
-                    className="p-0.5 text-ink-faint hover:text-ink disabled:opacity-30"
-                    aria-label="Move layer up"
-                  >
-                    <ChevronUp size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      reorderLayer(layer.id, Math.min(layers.length - 1, index + 1));
-                    }}
-                    disabled={index === layers.length - 1}
-                    className="p-0.5 text-ink-faint hover:text-ink disabled:opacity-30"
-                    aria-label="Move layer down"
-                  >
-                    <ChevronDown size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteLayer(layer.id);
-                    }}
-                    className="p-0.5 text-ink-faint hover:text-red-400"
-                    aria-label="Delete layer"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteLayer(layer.id);
+                  }}
+                  className="p-0.5 text-ink-faint opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                  aria-label="Delete layer"
+                >
+                  <Trash2 size={14} />
+                </button>
               </li>
             );
           })}

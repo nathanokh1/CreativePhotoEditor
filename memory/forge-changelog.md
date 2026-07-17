@@ -22,12 +22,12 @@ Related: [[capability-map]] | [[backlog]]
   project: CreativePhotoEditor
   reason: App lives at repo root; Forge tooling in /forge is gitignored (has its own repo). Vercel for web (main → Production, dev → Preview). Bumped Next to 14.2.35 to clear the 14.2.15 security advisory.
 
-### 2026-07-17 12:05
+### 2026-07-17 14:20
 - TYPE: DECISION
-  target: Branding + planning docs + Forge hub fix
+  target: Canvas fit + Transform handles + Selection/clipboard + layers UX
   by: builder
   project: CreativePhotoEditor
-  reason: Removed all "Photoshop" references across app/docs/project folder (Approver request; use neutral "photo editor" phrasing). Added docs/FEATURES.md (basic + advanced roadmap) and docs/TEST-CASES.md (manual checklist + automation plan). Fixed forge/forge-go.cmd path bug — Hub now live (agentmemory :8765, Hub :8766, orchestrator running). Next cycle after Approver review/testing: Selection-rect + Cut/Copy/Paste, layer thumbnails + drag-reorder, Transform handles/rotation.
+  reason: Approver confirmed main=Production (correct), Forge approvals OK, Codebase URL is github.com/nathanokh1/Codebase (private, v0.1.0 empty exports). Shipped fit-canvas-to-first-import (Settings toggle, default on), Transform 8 handles + aspect lock/free, Selection rect + Cut/Copy/Paste, layer thumbnails + drag-reorder. FEATURES.md updated with Brush/Pencil planned.
 
 ### 2026-07-17 11:55
 - TYPE: DECISION

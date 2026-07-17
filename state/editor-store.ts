@@ -2,8 +2,9 @@
 
 import { create } from "zustand";
 import { BlendMode, EditorEngine, Renderer, ToolId } from "@/core";
+import { useSettings } from "./settings-store";
 
-/** Read-optimized view of a Layer for the Layers Panel (no bitmaps). */
+/** Read-optimized view of a Layer for the Layers Panel (no full bitmaps). */
 export interface LayerView {
   id: string;
   name: string;
@@ -11,6 +12,7 @@ export interface LayerView {
   visible: boolean;
   locked: boolean;
   blendMode: BlendMode;
+  thumbnailUrl: string | null;
 }
 
 interface EditorState {
@@ -29,8 +31,12 @@ interface EditorState {
   refresh: () => void;
 
   setTool: (id: ToolId) => void;
+  setLockAspect: (lock: boolean) => void;
   undo: () => void;
   redo: () => void;
+  copy: () => Promise<void>;
+  cut: () => Promise<void>;
+  paste: () => void;
   importFiles: (files: FileList | File[]) => Promise<void>;
   exportAs: (format: "png" | "jpeg" | "webp") => Promise<void>;
   saveProject: () => Promise<void>;
@@ -43,6 +49,7 @@ interface EditorState {
   setBlendMode: (id: string, blend: BlendMode) => void;
   renameLayer: (id: string, name: string) => void;
   reorderLayer: (id: string, toUiIndex: number) => void;
+  fitCanvasToActiveLayer: () => void;
 
   zoomIn: () => void;
   zoomOut: () => void;
@@ -51,8 +58,29 @@ interface EditorState {
   engine: EditorEngine | null;
 }
 
+function makeThumbnail(bitmap: unknown, size = 40): string | null {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const img = bitmap as HTMLImageElement;
+    const iw = img.naturalWidth || img.width || size;
+    const ih = img.naturalHeight || img.height || size;
+    const scale = Math.min(size / iw, size / ih);
+    const w = iw * scale;
+    const h = ih * scale;
+    ctx.fillStyle = "#1a1d24";
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 function toLayerViews(engine: EditorEngine): LayerView[] {
-  // Graph is bottom-up; UI shows top-most first.
   return [...engine.graph.getLayersBottomUp()]
     .map((l) => ({
       id: l.id,
@@ -61,6 +89,7 @@ function toLayerViews(engine: EditorEngine): LayerView[] {
       visible: l.visible,
       locked: l.locked,
       blendMode: l.blendMode,
+      thumbnailUrl: makeThumbnail(l.source.bitmap),
     }))
     .reverse();
 }
@@ -115,20 +144,39 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   setTool: (id) => {
-    get().engine?.setTool(id);
+    const engine = get().engine;
+    if (!engine) return;
+    engine.setLockAspect(useSettings.getState().lockAspectRatio);
+    engine.setTool(id);
     set({ activeTool: id });
+  },
+
+  setLockAspect: (lock) => {
+    useSettings.getState().setLockAspectRatio(lock);
+    get().engine?.setLockAspect(lock);
   },
 
   undo: () => get().engine?.undo(),
   redo: () => get().engine?.redo(),
+
+  copy: async () => {
+    await get().engine?.copy();
+  },
+  cut: async () => {
+    await get().engine?.cut();
+  },
+  paste: () => {
+    get().engine?.paste();
+  },
 
   importFiles: async (files) => {
     const engine = get().engine;
     if (!engine) return;
     set({ busy: "Importing…" });
     try {
+      const fit = useSettings.getState().fitCanvasToFirstImport;
       for (const file of Array.from(files)) {
-        await engine.importFile(file);
+        await engine.importFile(file, { fitCanvasToImage: fit });
       }
     } finally {
       set({ busy: null });
@@ -185,6 +233,12 @@ export const useEditor = create<EditorState>((set, get) => ({
     const count = engine.graph.getLayersBottomUp().length;
     const graphIndex = count - 1 - toUiIndex;
     engine.reorderLayer(id, graphIndex);
+  },
+
+  fitCanvasToActiveLayer: () => {
+    const engine = get().engine;
+    const id = engine?.graph.getActiveLayerId();
+    if (engine && id) engine.fitCanvasToLayer(id);
   },
 
   zoomIn: () => {

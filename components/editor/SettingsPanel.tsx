@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useSettings } from "@/state/settings-store";
+import { useEditor } from "@/state/editor-store";
 import { Slider } from "@/components/ui/Slider";
 import { cn } from "@/components/ui/cn";
 
@@ -48,8 +49,19 @@ function Toggle({
 }
 
 export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
-  const { showTooltips, tooltipDelay, pixelSnap, setShowTooltips, setTooltipDelay, setPixelSnap } =
-    useSettings();
+  const {
+    showTooltips,
+    tooltipDelay,
+    pixelSnap,
+    fitCanvasToFirstImport,
+    lockAspectRatio,
+    setShowTooltips,
+    setTooltipDelay,
+    setPixelSnap,
+    setFitCanvasToFirstImport,
+    setLockAspectRatio,
+  } = useSettings();
+  const setLockAspect = useEditor((s) => s.setLockAspect);
 
   if (!open) return null;
 
@@ -88,6 +100,23 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               onChange={(v) => setTooltipDelay(v)}
             />
           </div>
+
+          <Toggle
+            label="Fit canvas to first import"
+            description="When you import the first image into an empty document, resize the canvas to match that image. Turn off to keep the default canvas size."
+            checked={fitCanvasToFirstImport}
+            onChange={setFitCanvasToFirstImport}
+          />
+
+          <Toggle
+            label="Lock aspect ratio (Transform)"
+            description="Corner handles keep proportions. Hold Shift while dragging to temporarily free-transform. Edge handles always stretch one axis."
+            checked={lockAspectRatio}
+            onChange={(v) => {
+              setLockAspectRatio(v);
+              setLockAspect(v);
+            }}
+          />
 
           <Toggle
             label="Snap to pixels"

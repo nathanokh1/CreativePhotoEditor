@@ -10,6 +10,8 @@ import {
   Texture,
 } from "pixi.js";
 import { BlendMode, CanvasSize, Layer, LayerGraph } from "../layer-graph";
+import { HandleId, handlePositions, layerBounds } from "../tools/transform-math";
+import type { SelectionRect } from "../file-io/clipboard";
 
 export interface ViewportState {
   x: number;
@@ -20,6 +22,7 @@ export interface ViewportState {
 const CHECKER_LIGHT = 0x2c2f36;
 const CHECKER_DARK = 0x22252b;
 const CHECKER_SIZE = 16;
+const HANDLE_SCREEN_PX = 10;
 
 /**
  * Wraps a PixiJS Application. Subscribes to a LayerGraph and re-composites the
@@ -37,8 +40,12 @@ export class Renderer {
   private graph: LayerGraph | null = null;
   private unsubscribe: (() => void) | null = null;
   private view: ViewportState = { x: 0, y: 0, zoom: 1 };
+  private showTransformHandles = false;
+  private hostCanvas: HTMLCanvasElement | null = null;
+  private selection: SelectionRect | null = null;
 
   async init(canvas: HTMLCanvasElement, width: number, height: number): Promise<void> {
+    this.hostCanvas = canvas;
     const app = new Application();
     await app.init({
       canvas,
@@ -68,7 +75,6 @@ export class Renderer {
     this.drawChecker(graph.getCanvasSize());
     this.syncAll();
     this.unsubscribe = graph.subscribe(() => {
-      // Coarse re-sync keeps MVP simple; optimize per-event later if needed.
       this.syncAll();
     });
   }
@@ -78,11 +84,30 @@ export class Renderer {
     this.drawOverlay();
   }
 
-  // ---- viewport -----------------------------------------------------------
+  setShowTransformHandles(show: boolean): void {
+    this.showTransformHandles = show;
+    this.drawOverlay();
+  }
+
+  setCursorOverride(cursor: string | null): void {
+    if (this.hostCanvas) {
+      this.hostCanvas.style.cursor = cursor ?? "";
+    }
+  }
+
+  setSelection(rect: SelectionRect | null): void {
+    this.selection = rect;
+    this.drawOverlay();
+  }
+
+  getSelection(): SelectionRect | null {
+    return this.selection ? { ...this.selection } : null;
+  }
 
   setViewport(view: Partial<ViewportState>): void {
     this.view = { ...this.view, ...view };
     this.applyViewport();
+    this.drawOverlay();
   }
 
   getViewport(): ViewportState {
@@ -94,7 +119,6 @@ export class Renderer {
     this.viewport.scale.set(this.view.zoom);
   }
 
-  /** Fit the document centered in the current view with a small margin. */
   fitToView(): void {
     if (!this.app || !this.graph) return;
     const { width: cw, height: ch } = this.graph.getCanvasSize();
@@ -107,9 +131,8 @@ export class Renderer {
       y: (vh - ch * zoom) / 2,
     };
     this.applyViewport();
+    this.drawOverlay();
   }
-
-  // ---- checker + overlay --------------------------------------------------
 
   private drawChecker(size: CanvasSize): void {
     const g = this.checker;
@@ -131,32 +154,38 @@ export class Renderer {
     const g = this.overlay;
     g.clear();
     const size = this.graph.getCanvasSize();
-    // Document border.
-    g.rect(0, 0, size.width, size.height).stroke({ width: 1 / this.view.zoom, color: 0x3a3f4b });
-    // Active layer selection outline.
+    const strokeW = 1 / this.view.zoom;
+    g.rect(0, 0, size.width, size.height).stroke({ width: strokeW, color: 0x3a3f4b });
+
     const active = this.graph.getActiveLayer();
     if (active && active.visible) {
-      const b = this.spriteBounds(active);
-      if (b) {
-        g.rect(b.x, b.y, b.width, b.height).stroke({
-          width: 1.5 / this.view.zoom,
-          color: 0x6366f1,
-        });
+      const b = layerBounds(active);
+      const preview = this.previewOffset.get(active.id);
+      const bx = b.x + (preview?.dx ?? 0);
+      const by = b.y + (preview?.dy ?? 0);
+      g.rect(bx, by, b.width, b.height).stroke({
+        width: 1.5 / this.view.zoom,
+        color: 0x6366f1,
+      });
+
+      if (this.showTransformHandles) {
+        const half = HANDLE_SCREEN_PX / 2 / this.view.zoom;
+        const positions = handlePositions({ ...b, x: bx, y: by });
+        for (const pos of Object.values(positions)) {
+          g.rect(pos.x - half, pos.y - half, half * 2, half * 2)
+            .fill(0xffffff)
+            .stroke({ width: strokeW, color: 0x6366f1 });
+        }
       }
     }
-  }
 
-  private spriteBounds(layer: Layer): Rectangle | null {
-    const sprite = this.sprites.get(layer.id);
-    if (!sprite) return null;
-    const b = sprite.getBounds();
-    // Convert world (screen) bounds back to viewport-local (document) space.
-    const tl = this.viewport.toLocal(new Point(b.x, b.y));
-    const br = this.viewport.toLocal(new Point(b.x + b.width, b.y + b.height));
-    return new Rectangle(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+    if (this.selection && this.selection.width > 0 && this.selection.height > 0) {
+      const s = this.selection;
+      g.rect(s.x, s.y, s.width, s.height)
+        .fill({ color: 0x6366f1, alpha: 0.12 })
+        .stroke({ width: 1 / this.view.zoom, color: 0xffffff, alpha: 0.9 });
+    }
   }
-
-  // ---- graph sync ---------------------------------------------------------
 
   private syncAll(): void {
     if (!this.graph) return;
@@ -177,7 +206,6 @@ export class Renderer {
       this.docLayers.setChildIndex(sprite, index);
     });
 
-    // Drop sprites for removed layers.
     for (const [id, sprite] of this.sprites) {
       if (!seen.has(id)) {
         this.docLayers.removeChild(sprite);
@@ -204,13 +232,10 @@ export class Renderer {
   private getTexture(layer: Layer): Texture {
     const existing = this.textures.get(layer.id);
     if (existing) return existing;
-    // layer.source.bitmap is an HTMLImageElement or ImageBitmap (see file-io).
     const texture = Texture.from(layer.source.bitmap as HTMLImageElement);
     this.textures.set(layer.id, texture);
     return texture;
   }
-
-  // ---- live drag preview (no graph mutation) ------------------------------
 
   setPreviewOffset(layerId: string, dx: number, dy: number): void {
     this.previewOffset.set(layerId, { dx, dy });
@@ -228,9 +253,6 @@ export class Renderer {
     this.syncAll();
   }
 
-  // ---- hit testing --------------------------------------------------------
-
-  /** Topmost visible layer id at a canvas-relative point, or null. */
   hitTest(canvasX: number, canvasY: number): string | null {
     if (!this.graph) return null;
     const global = new Point(canvasX, canvasY);
@@ -253,22 +275,40 @@ export class Renderer {
     return null;
   }
 
-  /** Convert a canvas-relative point to document coordinates. */
+  hitTestHandle(canvasX: number, canvasY: number, layerId: string): HandleId | null {
+    if (!this.graph || !this.showTransformHandles) return null;
+    const layer = this.graph.getLayer(layerId);
+    if (!layer) return null;
+    const doc = this.screenToDocument(canvasX, canvasY);
+    const b = layerBounds(layer);
+    const preview = this.previewOffset.get(layerId);
+    const positions = handlePositions({
+      ...b,
+      x: b.x + (preview?.dx ?? 0),
+      y: b.y + (preview?.dy ?? 0),
+    });
+    const hitR = (HANDLE_SCREEN_PX / 2 + 2) / this.view.zoom;
+    for (const [id, pos] of Object.entries(positions) as [HandleId, { x: number; y: number }][]) {
+      if (Math.abs(doc.x - pos.x) <= hitR && Math.abs(doc.y - pos.y) <= hitR) {
+        return id;
+      }
+    }
+    return null;
+  }
+
   screenToDocument(canvasX: number, canvasY: number): { x: number; y: number } {
     const p = this.viewport.toLocal(new Point(canvasX, canvasY));
     return { x: p.x, y: p.y };
   }
 
-  // ---- export -------------------------------------------------------------
-
-  /** Flatten the document layers (chrome-free) to a canvas at 1:1 resolution. */
   async extractCanvas(): Promise<HTMLCanvasElement> {
     if (!this.app || !this.graph) throw new Error("Renderer not ready");
     const size = this.graph.getCanvasSize();
     const prevView = { ...this.view };
     const prevPreview = new Map(this.previewOffset);
-    // Reset viewport so document-local == world coords for a clean frame.
+    const prevHandles = this.showTransformHandles;
     this.previewOffset.clear();
+    this.showTransformHandles = false;
     this.setViewport({ x: 0, y: 0, zoom: 1 });
     this.syncAll();
     const overlayVisible = this.overlay.visible;
@@ -283,10 +323,10 @@ export class Renderer {
       resolution: 1,
     }) as HTMLCanvasElement;
 
-    // Restore editor state.
     this.overlay.visible = overlayVisible;
     this.checker.visible = checkerVisible;
     this.previewOffset = prevPreview;
+    this.showTransformHandles = prevHandles;
     this.setViewport(prevView);
     this.syncAll();
     return result;
@@ -300,5 +340,6 @@ export class Renderer {
     this.sprites.clear();
     this.app?.destroy(true, { children: true });
     this.app = null;
+    this.hostCanvas = null;
   }
 }
