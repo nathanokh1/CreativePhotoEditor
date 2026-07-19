@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import {
   Download,
+  FilePlus,
   FileUp,
   FolderOpen,
   Image as ImageIcon,
@@ -15,12 +16,13 @@ import { useEditor } from "@/state/editor-store";
 import { IconButton } from "@/components/ui/IconButton";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { cn } from "@/components/ui/cn";
+import { NewDocumentDialog } from "./NewDocumentDialog";
+import { ExportDialog } from "./ExportDialog";
 
 export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const importFiles = useEditor((s) => s.importFiles);
   const openProject = useEditor((s) => s.openProject);
   const saveProject = useEditor((s) => s.saveProject);
-  const exportAs = useEditor((s) => s.exportAs);
   const undo = useEditor((s) => s.undo);
   const redo = useEditor((s) => s.redo);
   const canUndo = useEditor((s) => s.canUndo);
@@ -32,6 +34,7 @@ export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const importRef = useRef<HTMLInputElement>(null);
   const openRef = useRef<HTMLInputElement>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [newDocOpen, setNewDocOpen] = useState(false);
 
   return (
     <header className="flex h-14 items-center gap-2 border-b border-panel-border bg-panel px-3">
@@ -70,6 +73,14 @@ export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
       />
 
       <IconButton
+        icon={<FilePlus size={18} />}
+        label="New document"
+        description="Start a fresh document with a custom size and background."
+        shortcut="Ctrl+N"
+        tooltipSide="bottom"
+        onClick={() => setNewDocOpen(true)}
+      />
+      <IconButton
         icon={<FileUp size={18} />}
         label="Import image"
         description="Bring a PNG, JPG or WebP in as a new layer. You can also drag & drop onto the canvas."
@@ -93,37 +104,15 @@ export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
         onClick={() => void saveProject()}
       />
 
-      <div className="relative">
-        <IconButton
-          icon={<Download size={18} />}
-          label="Export"
-          description="Flatten all visible layers into a single image (PNG, JPG or WebP)."
-          shortcut="Ctrl+E"
-          tooltipSide="bottom"
-          active={exportOpen}
-          onClick={() => setExportOpen((v) => !v)}
-        />
-        {exportOpen && (
-          <>
-            <div className="fixed inset-0 z-20" onClick={() => setExportOpen(false)} />
-            <div className="absolute left-0 top-12 z-30 w-40 animate-fade-in rounded-xl border border-panel-border bg-panel-raised p-1.5 shadow-panel">
-              {(["png", "jpeg", "webp"] as const).map((fmt) => (
-                <button
-                  key={fmt}
-                  onClick={() => {
-                    setExportOpen(false);
-                    void exportAs(fmt);
-                  }}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-ink-dim hover:bg-accent/15 hover:text-ink"
-                >
-                  <span className="uppercase">{fmt === "jpeg" ? "jpg" : fmt}</span>
-                  <span className="text-[10px] text-ink-faint">flatten</span>
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <IconButton
+        icon={<Download size={18} />}
+        label="Export"
+        description="Export a flattened image or each layer separately, with background and size options."
+        shortcut="Ctrl+E"
+        tooltipSide="bottom"
+        active={exportOpen}
+        onClick={() => setExportOpen(true)}
+      />
 
       <div className="mx-1 h-7 w-px bg-panel-border" />
 
@@ -166,6 +155,9 @@ export function TopBar({ onOpenSettings }: { onOpenSettings: () => void }) {
           className={cn("bg-transparent")}
         />
       </div>
+
+      <NewDocumentDialog open={newDocOpen} onClose={() => setNewDocOpen(false)} />
+      <ExportDialog open={exportOpen} onClose={() => setExportOpen(false)} />
     </header>
   );
 }

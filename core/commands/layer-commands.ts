@@ -101,7 +101,88 @@ export class ReorderLayerCommand implements Command {
   }
 }
 
-type LayerProps = Partial<Pick<Layer, "name" | "opacity" | "visible" | "blendMode" | "locked">>;
+type LayerProps = Partial<
+  Pick<
+    Layer,
+    | "name"
+    | "opacity"
+    | "visible"
+    | "blendMode"
+    | "locked"
+    | "parentId"
+    | "childIds"
+    | "maskEnabled"
+    | "clip"
+  >
+>;
+
+/** Wrap layers in a group folder (organizational; paint order unchanged). */
+export class GroupLayersCommand implements Command {
+  readonly label = "Group layers";
+  private groupId: string | null = null;
+  private insertIndex = -1;
+  private prevParents = new Map<string, string | null | undefined>();
+
+  constructor(
+    private readonly groupLayer: Layer,
+    private readonly childIds: string[],
+  ) {}
+
+  execute(graph: LayerGraph): void {
+    this.prevParents.clear();
+    for (const id of this.childIds) {
+      const layer = graph.getLayer(id);
+      if (layer) this.prevParents.set(id, layer.parentId);
+    }
+    // Insert group just above the top-most child.
+    let maxIdx = 0;
+    for (const id of this.childIds) {
+      maxIdx = Math.max(maxIdx, graph.indexOf(id));
+    }
+    this.insertIndex = maxIdx + 1;
+    graph.addLayer(this.groupLayer, this.insertIndex);
+    this.groupId = this.groupLayer.id;
+    for (const id of this.childIds) {
+      graph.updateLayer(id, { parentId: this.groupLayer.id });
+    }
+  }
+
+  undo(graph: LayerGraph): void {
+    for (const [id, parentId] of this.prevParents) {
+      graph.updateLayer(id, { parentId: parentId ?? null });
+    }
+    if (this.groupId) graph.removeLayer(this.groupId);
+  }
+}
+
+/** Dissolve a group folder and clear child parentIds. */
+export class UngroupLayersCommand implements Command {
+  readonly label = "Ungroup layers";
+  private removed?: Layer;
+  private index = -1;
+  private childIds: string[] = [];
+
+  constructor(private readonly groupId: string) {}
+
+  execute(graph: LayerGraph): void {
+    const group = graph.getLayer(this.groupId);
+    if (!group || group.type !== "group") return;
+    this.childIds = [...(group.childIds ?? [])];
+    this.index = graph.indexOf(this.groupId);
+    for (const id of this.childIds) {
+      graph.updateLayer(id, { parentId: null });
+    }
+    this.removed = graph.removeLayer(this.groupId);
+  }
+
+  undo(graph: LayerGraph): void {
+    if (!this.removed) return;
+    graph.addLayer(this.removed, this.index);
+    for (const id of this.childIds) {
+      graph.updateLayer(id, { parentId: this.groupId });
+    }
+  }
+}
 
 /** Generic property change (opacity, visibility, name, blend mode, lock). */
 export class SetLayerPropsCommand implements Command {
@@ -129,6 +210,42 @@ export class SetLayerPropsCommand implements Command {
 
   undo(graph: LayerGraph): void {
     graph.updateLayer(this.layerId, this.before);
+  }
+}
+
+/**
+ * Apply the same property change to several layers as one atomic (single-undo)
+ * command. Used for group cascades: hiding/locking a group hides/locks all of
+ * its children in one step.
+ */
+export class SetLayersPropsCommand implements Command {
+  readonly label: string;
+  private before = new Map<string, LayerProps>();
+
+  constructor(
+    private readonly layerIds: string[],
+    private readonly after: LayerProps,
+    label = "Edit layers",
+  ) {
+    this.label = label;
+  }
+
+  execute(graph: LayerGraph): void {
+    this.before.clear();
+    for (const id of this.layerIds) {
+      const layer = graph.getLayer(id);
+      if (!layer) continue;
+      const prev: LayerProps = {};
+      for (const key of Object.keys(this.after) as (keyof LayerProps)[]) {
+        (prev as Record<string, unknown>)[key] = layer[key];
+      }
+      this.before.set(id, prev);
+      graph.updateLayer(id, this.after);
+    }
+  }
+
+  undo(graph: LayerGraph): void {
+    for (const [id, prev] of this.before) graph.updateLayer(id, prev);
   }
 }
 

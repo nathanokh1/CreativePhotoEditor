@@ -17,11 +17,14 @@ interface SettingsState {
   fitCanvasToFirstImport: boolean;
   /** Corner handles keep aspect ratio unless Shift is held (Transform tool). */
   lockAspectRatio: boolean;
+  /** Show lightweight grid guides on the canvas. */
+  showGuides: boolean;
   setShowTooltips: (v: boolean) => void;
   setTooltipDelay: (v: number) => void;
   setPixelSnap: (v: boolean) => void;
   setFitCanvasToFirstImport: (v: boolean) => void;
   setLockAspectRatio: (v: boolean) => void;
+  setShowGuides: (v: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -32,11 +35,13 @@ export const useSettings = create<SettingsState>()(
       pixelSnap: true,
       fitCanvasToFirstImport: true,
       lockAspectRatio: true,
+      showGuides: false,
       setShowTooltips: (v) => set({ showTooltips: v }),
       setTooltipDelay: (v) => set({ tooltipDelay: v }),
       setPixelSnap: (v) => set({ pixelSnap: v }),
       setFitCanvasToFirstImport: (v) => set({ fitCanvasToFirstImport: v }),
       setLockAspectRatio: (v) => set({ lockAspectRatio: v }),
+      setShowGuides: (v) => set({ showGuides: v }),
     }),
     { name: "cpe-settings" },
   ),

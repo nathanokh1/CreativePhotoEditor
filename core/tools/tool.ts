@@ -17,7 +17,20 @@ export interface PointerSample {
   altKey: boolean;
 }
 
-export type ToolId = "move" | "transform" | "hand" | "select";
+export type ToolId =
+  | "move"
+  | "transform"
+  | "hand"
+  | "select"
+  | "lasso"
+  | "wand"
+  | "crop"
+  | "brush"
+  | "pencil"
+  | "eraser"
+  | "pen"
+  | "clone"
+  | "heal";
 
 /**
  * A Tool is a mode that decides what pointer input does on the Canvas. Exactly

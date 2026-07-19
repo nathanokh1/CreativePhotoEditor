@@ -1,4 +1,4 @@
-import { Layer, RasterSource } from "../layer-graph";
+import { BlendMode, Layer, RasterSource } from "../layer-graph";
 
 /** Document-space axis-aligned selection rectangle. */
 export interface SelectionRect {
@@ -11,6 +11,12 @@ export interface SelectionRect {
 export interface ClipboardPayload {
   source: RasterSource;
   name: string;
+  /** Scale/rotation to reproduce on paste so it looks exactly as copied. */
+  scaleX?: number;
+  scaleY?: number;
+  rotation?: number;
+  opacity?: number;
+  blendMode?: BlendMode;
 }
 
 /**

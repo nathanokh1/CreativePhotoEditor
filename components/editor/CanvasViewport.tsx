@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Copy, Scissors, ClipboardPaste, Trash2 } from "lucide-react";
 import { useEditor } from "@/state/editor-store";
+import { ContextMenu, ContextMenuItem } from "@/components/ui/ContextMenu";
 
 /** Hosts the PixiJS canvas and translates DOM input into engine tool events. */
 export function CanvasViewport() {
@@ -14,7 +15,26 @@ export function CanvasViewport() {
   const refresh = useEditor((s) => s.refresh);
   const ready = useEditor((s) => s.ready);
   const layerCount = useEditor((s) => s.layers.length);
+  const copy = useEditor((s) => s.copy);
+  const cut = useEditor((s) => s.cut);
+  const paste = useEditor((s) => s.paste);
+  const duplicateLayer = useEditor((s) => s.duplicateLayer);
+  const deleteLayer = useEditor((s) => s.deleteLayer);
   const initialized = useRef(false);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const canvasMenuItems = useCallback((): ContextMenuItem[] => {
+    const s = useEditor.getState();
+    const active = s.layers.find((l) => l.id === s.activeLayerId);
+    const hasLayer = !!active && active.type !== "group";
+    return [
+      { label: "Copy", icon: <Copy size={13} />, disabled: !hasLayer, onClick: () => void copy() },
+      { label: "Cut", icon: <Scissors size={13} />, disabled: !hasLayer, onClick: () => void cut() },
+      { label: "Paste", icon: <ClipboardPaste size={13} />, onClick: () => paste() },
+      { label: "Duplicate", icon: <Copy size={13} />, disabled: !active, separator: true, onClick: () => active && void duplicateLayer(active.id) },
+      { label: "Delete", icon: <Trash2 size={13} />, danger: true, disabled: !active, onClick: () => active && deleteLayer(active.id) },
+    ];
+  }, [copy, cut, paste, duplicateLayer, deleteLayer]);
 
   useEffect(() => {
     if (initialized.current || !canvasRef.current) return;
@@ -73,6 +93,17 @@ export function CanvasViewport() {
     [toCanvasPoint, refresh],
   );
 
+  const onPointerCancel = useCallback(
+    (e: React.PointerEvent) => {
+      const engine = useEditor.getState().engine;
+      if (!engine) return;
+      const p = toCanvasPoint(e);
+      engine.pointerUp({ canvasX: p.x, canvasY: p.y, shiftKey: e.shiftKey, altKey: e.altKey });
+      refresh();
+    },
+    [toCanvasPoint, refresh],
+  );
+
   const onWheel = useCallback((e: React.WheelEvent) => {
     const engine = useEditor.getState().engine;
     if (!engine) return;
@@ -108,8 +139,22 @@ export function CanvasViewport() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onPointerLeave={(e) => {
+          // End stroke if the pointer leaves while captured buttons are down.
+          if (e.buttons === 0) return;
+          onPointerUp(e);
+        }}
         onWheel={onWheel}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY });
+        }}
       />
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} items={canvasMenuItems()} onClose={() => setMenu(null)} />
+      )}
 
       {ready && layerCount === 0 && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">

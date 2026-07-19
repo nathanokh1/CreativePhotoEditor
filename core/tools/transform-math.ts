@@ -1,7 +1,7 @@
 import { Layer, Transform } from "../layer-graph";
 
-/** Eight resize handles around a layer's axis-aligned bounding box. */
-export type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+/** Eight resize handles around a layer's axis-aligned bounding box, plus rotate. */
+export type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "rotate";
 
 export interface LayerBounds {
   x: number;
@@ -24,6 +24,7 @@ export function layerBounds(layer: Layer): LayerBounds {
 export function handlePositions(b: LayerBounds): Record<HandleId, { x: number; y: number }> {
   const cx = b.x + b.width / 2;
   const cy = b.y + b.height / 2;
+  const rotateOffset = Math.max(24, b.height * 0.08);
   return {
     nw: { x: b.x, y: b.y },
     n: { x: cx, y: b.y },
@@ -33,6 +34,7 @@ export function handlePositions(b: LayerBounds): Record<HandleId, { x: number; y
     s: { x: cx, y: b.y + b.height },
     sw: { x: b.x, y: b.y + b.height },
     w: { x: b.x, y: cy },
+    rotate: { x: cx, y: b.y - rotateOffset },
   };
 }
 
@@ -50,12 +52,15 @@ export function handleCursor(id: HandleId): string {
     case "ne":
     case "sw":
       return "nesw-resize";
+    case "rotate":
+      return "grab";
   }
 }
 
 /**
  * Resize a layer from a dragged handle. Anchor is the opposite corner/edge.
  * When `lockAspect` is true, corners keep proportions; edges still stretch one axis.
+ * The "rotate" handle is handled separately by TransformTool.
  */
 export function resizeFromHandle(
   layer: Layer,
@@ -64,6 +69,7 @@ export function resizeFromHandle(
   pointer: { x: number; y: number },
   lockAspect: boolean,
 ): Transform {
+  if (handle === "rotate") return { ...start };
   const sw = layer.source.width;
   const sh = layer.source.height;
   const startW = sw * start.scaleX;

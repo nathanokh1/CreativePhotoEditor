@@ -55,13 +55,16 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     pixelSnap,
     fitCanvasToFirstImport,
     lockAspectRatio,
+    showGuides,
     setShowTooltips,
     setTooltipDelay,
     setPixelSnap,
     setFitCanvasToFirstImport,
     setLockAspectRatio,
+    setShowGuides,
   } = useSettings();
   const setLockAspect = useEditor((s) => s.setLockAspect);
+  const setShowGuidesEngine = useEditor((s) => s.setShowGuides);
 
   if (!open) return null;
 
@@ -123,6 +126,16 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             description="Keep layer positions aligned to whole pixels while moving."
             checked={pixelSnap}
             onChange={setPixelSnap}
+          />
+
+          <Toggle
+            label="Show guides"
+            description="Draw a light grid over the document to help with alignment."
+            checked={showGuides}
+            onChange={(v) => {
+              setShowGuides(v);
+              setShowGuidesEngine(v);
+            }}
           />
         </div>
 

@@ -96,6 +96,22 @@ export class LayerGraph {
     return layer;
   }
 
+  /** Folder-style group — no pixels; children keep painting in the flat stack. */
+  createGroupLayer(name: string, childIds: string[], source: RasterSource): Layer {
+    return {
+      id: nextId("group"),
+      name,
+      type: "group",
+      transform: identityTransform(),
+      opacity: 1,
+      blendMode: "normal",
+      visible: true,
+      locked: false,
+      source,
+      childIds: [...childIds],
+    };
+  }
+
   addLayer(layer: Layer, index?: number): void {
     const at = index === undefined ? this.layers.length : index;
     this.layers.splice(at, 0, layer);
@@ -167,6 +183,18 @@ export class LayerGraph {
   setName(name: string): void {
     this.meta.name = name;
     this.emit({ type: "layer-updated", layerId: "" });
+  }
+
+  setBackground(background: DocumentMeta["background"]): void {
+    this.meta.background = background;
+    this.emit({ type: "canvas-resized" });
+  }
+
+  replaceLayerSource(id: string, source: RasterSource): void {
+    const layer = this.getLayer(id);
+    if (!layer) return;
+    layer.source = source;
+    this.emit({ type: "layer-updated", layerId: id });
   }
 
   /** Replace the entire graph (used by project load). */

@@ -36,7 +36,8 @@ an **expected result**. Check the box if it passes; note anything odd in the
 - [ ] **D1** [E2E] Select Move (V), drag a layer. → Layer follows the cursor; releasing keeps it there.
 - [ ] **D2** Hold Shift while dragging. → Movement locks to horizontal OR vertical.
 - [ ] **D3** Click an overlapping area. → The top-most layer under the cursor becomes active (blue outline).
-- [ ] **D4** Select Transform (T), drag outward/inward. → Active layer scales from its center.
+- [ ] **D4** Select Transform (T), drag a corner handle. → Active layer resizes (aspect locked by default).
+- [ ] **D4b** Drag the circle above the transform box. → Layer rotates.
 - [ ] **D5** Select Hand (H) or use the wheel. → Canvas pans/zooms; layers are not moved.
 - [ ] **D6** Press `0` (Fit). → Whole document fits centered in view.
 
@@ -45,8 +46,10 @@ an **expected result**. Check the box if it passes; note anything odd in the
 - [ ] **E2** Drag the Opacity slider. → Layer fades in real time; release commits the value.
 - [ ] **E3** Change Blend mode (Multiply/Screen/Overlay). → Compositing changes visibly against layers below.
 - [ ] **E4** Double-click a layer name, type a new name, Enter. → Name updates.
-- [ ] **E5** Use ▲/▼ to reorder a layer. → Stacking order changes on canvas.
+- [ ] **E5** Drag a layer row to reorder. → Stacking order changes on canvas.
 - [ ] **E6** Delete a layer (trash icon). → Layer removed; another becomes active.
+- [ ] **E7** Lock icon → layer cannot be moved until unlocked.
+- [ ] **E8** Duplicate button → copy of active layer appears.
 
 ## F. Undo / Redo  [UNIT + E2E]
 - [ ] **F1** Move a layer, then Ctrl+Z. → Layer returns to its previous position.
@@ -76,13 +79,41 @@ an **expected result**. Check the box if it passes; note anything odd in the
 - [ ] **J2** Push a trivial change to `dev`. → A new Preview deployment builds and reflects the change.
 - [ ] **J3** Merge `dev` → `main` and push. → Production updates automatically.
 
+## K. Paint tools
+- [ ] **K1** Select Brush (B), paint on a layer. → Soft stroke appears; Undo removes it.
+- [ ] **K2** Change size/color/opacity in the paint options bar, paint again. → New stroke uses those settings.
+- [ ] **K3** Pencil (P) paints hard edges; Eraser (E) removes pixels.
+
+## L. Transform rotation & crop / lasso
+- [ ] **L1** Transform (T) → drag the circle above the box. → Layer rotates; Undo restores.
+- [ ] **L2** Crop (C) → drag a rect, release. → Canvas resizes to that region; layers shift.
+- [ ] **L3** Lasso (L) → draw a freeform path. → Selection appears; Cut clears that region’s bbox.
+
+## M. Document / layers extras
+- [ ] **M1** New document (File+) → pick a preset + background color → Create. → Fresh canvas with chosen size/bg.
+- [ ] **M2** Lock a layer → try Move. → Layer does not move.
+- [ ] **M3** Duplicate a layer. → Copy appears offset.
+- [ ] **M4** Ctrl/Cmd+click two layers → Group. → Group folder appears; children indent.
+- [ ] **M5** Apply Brightness/Contrast/Saturation → Apply to layer. → Image changes; Undo works.
+- [ ] **M6** Arrow keys nudge 1px; Shift+arrows nudge 10px.
+
+## N. Export options & clipboard
+- [ ] **N1** Export menu → set 2× scale → PNG. → Downloaded image is ~2× document size.
+- [ ] **N2** Export JPG with low quality. → Smaller / more compressed file.
+- [ ] **N3** Copy an image in another app, focus editor, Ctrl+V. → Image imports as a layer (browser permission may prompt).
+
+## O. Onboarding & guides
+- [ ] **O1** First visit to editor shows Quick start card; dismiss persists after refresh.
+- [ ] **O2** Settings → Show guides ON. → Grid appears on the canvas.
+
 ---
 
-## Known limitations at MVP (expected, not bugs)
-- Transform is center-scale only (no rotation/corner handles yet).
-- Layer reorder is via ▲/▼ buttons (drag-to-reorder coming).
-- No layer thumbnails yet.
-- No Cut/Copy/Paste or Selection tool yet (next up).
+## Known limitations (expected, not bugs)
+- Lasso Cut/Copy uses the path’s bounding box (not a true freeform mask).
+- Text/shape layers are rasterized bitmaps (not live editable vectors).
+- Groups are organizational folders (children still paint in the flat stack).
+- Adjustments are destructive (no adjustment layers yet).
+- Crop creates multiple undo steps (per-layer shift + canvas resize).
 
 ---
 

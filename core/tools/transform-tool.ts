@@ -1,37 +1,37 @@
 import { SetTransformCommand } from "../commands";
 import { Transform } from "../layer-graph";
 import { PointerSample, Tool, ToolContext } from "./tool";
-import { HandleId, handleCursor, resizeFromHandle } from "./transform-math";
+import { HandleId, handleCursor, layerBounds, resizeFromHandle } from "./transform-math";
+
 /**
- * Transform tool with 8 resize handles (corners + edges).
- * - Corners: scale; aspect locked by default (Shift = free).
- * - Edges: stretch one axis.
- * - Drag inside the layer (not on a handle): move it.
- * Lock-aspect default is flipped when Settings.lockAspectRatio is false.
+ * Transform tool with 8 resize handles + a rotation handle above the top edge.
  */
 export class TransformTool implements Tool {
   readonly id = "transform" as const;
   readonly label = "Transform";
   readonly hint =
-    "Drag corner/edge handles to resize. Hold Shift to toggle aspect lock. Drag inside to move. (T)";
+    "Drag corner/edge handles to resize, the top handle to rotate. Hold Shift to toggle aspect lock. (T)";
   readonly cursor = "default";
 
-  /** When true (default), corner handles keep proportions unless Shift is held. */
   lockAspect = true;
 
-  private mode: "idle" | "resize" | "move" = "idle";
+  private mode: "idle" | "resize" | "move" | "rotate" = "idle";
   private handle: HandleId | null = null;
   private layerId: string | null = null;
   private startTransform: Transform | null = null;
   private startDoc = { x: 0, y: 0 };
+  private startAngle = 0;
   private nextTransform: Transform | null = null;
   private moveDelta = { dx: 0, dy: 0 };
 
   onPointerDown(pt: PointerSample, ctx: ToolContext): void {
     const active = ctx.graph.getActiveLayer();
-    // Prefer handle hit on the active layer, then layer hit.
     if (active && active.visible && !active.locked) {
       const handle = ctx.renderer.hitTestHandle(pt.canvasX, pt.canvasY, active.id);
+      if (handle === "rotate") {
+        this.beginRotate(active.id, pt, ctx);
+        return;
+      }
       if (handle) {
         this.beginResize(active.id, handle, pt, ctx);
         return;
@@ -48,8 +48,6 @@ export class TransformTool implements Tool {
     const layer = ctx.graph.getLayer(target);
     if (!layer || layer.locked) return;
 
-    // Clicking a different layer: select it and show handles; don't start a move
-    // until the next drag on that selection (feels more predictable).
     if (active?.id !== target) {
       this.reset();
       ctx.renderer.setShowTransformHandles(true);
@@ -65,7 +63,6 @@ export class TransformTool implements Tool {
   }
 
   onPointerMove(pt: PointerSample, ctx: ToolContext): void {
-    // Update cursor when hovering handles.
     if (this.mode === "idle") {
       const active = ctx.graph.getActiveLayer();
       if (active) {
@@ -80,8 +77,21 @@ export class TransformTool implements Tool {
     const layer = ctx.graph.getLayer(this.layerId);
     if (!layer) return;
 
+    if (this.mode === "rotate") {
+      const b = layerBounds({ ...layer, transform: this.startTransform });
+      const cx = b.x + b.width / 2;
+      const cy = b.y + b.height / 2;
+      const angle = Math.atan2(now.y - cy, now.x - cx);
+      const next: Transform = {
+        ...this.startTransform,
+        rotation: this.startTransform.rotation + (angle - this.startAngle),
+      };
+      this.nextTransform = next;
+      ctx.graph.setTransform(this.layerId, next);
+      return;
+    }
+
     if (this.mode === "resize" && this.handle) {
-      // Shift flips the lock-aspect preference for this gesture.
       const lock = pt.shiftKey ? !this.lockAspect : this.lockAspect;
       const next = resizeFromHandle(layer, this.startTransform, this.handle, now, lock);
       this.nextTransform = next;
@@ -110,19 +120,16 @@ export class TransformTool implements Tool {
     const id = this.layerId;
     const start = this.startTransform;
 
-    if (this.mode === "resize" && this.nextTransform) {
+    if ((this.mode === "resize" || this.mode === "rotate") && this.nextTransform) {
       ctx.graph.setTransform(id, start);
       ctx.bus.dispatch(new SetTransformCommand(id, this.nextTransform));
     } else if (this.mode === "move") {
       const { dx, dy } = this.moveDelta;
       ctx.renderer.clearPreview(id);
       if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
-        const end: Transform = {
-          ...start,
-          x: start.x + dx,
-          y: start.y + dy,
-        };
-        ctx.bus.dispatch(new SetTransformCommand(id, end));
+        ctx.bus.dispatch(
+          new SetTransformCommand(id, { ...start, x: start.x + dx, y: start.y + dy }),
+        );
       }
     }
 
@@ -140,6 +147,22 @@ export class TransformTool implements Tool {
     this.mode = "resize";
     this.nextTransform = null;
     ctx.renderer.setCursorOverride(handleCursor(handle));
+  }
+
+  private beginRotate(layerId: string, pt: PointerSample, ctx: ToolContext): void {
+    const layer = ctx.graph.getLayer(layerId);
+    if (!layer) return;
+    this.layerId = layerId;
+    this.handle = "rotate";
+    this.startTransform = { ...layer.transform };
+    this.startDoc = ctx.renderer.screenToDocument(pt.canvasX, pt.canvasY);
+    const b = layerBounds(layer);
+    const cx = b.x + b.width / 2;
+    const cy = b.y + b.height / 2;
+    this.startAngle = Math.atan2(this.startDoc.y - cy, this.startDoc.x - cx);
+    this.mode = "rotate";
+    this.nextTransform = null;
+    ctx.renderer.setCursorOverride("grabbing");
   }
 
   private reset(): void {

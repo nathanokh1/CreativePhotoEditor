@@ -4,7 +4,19 @@
 // This module is framework-agnostic on purpose: it must survive a future Tauri /
 // mobile wrap and must not import React, Next.js, or pixi.js.
 
-export type BlendMode = "normal" | "multiply" | "screen" | "overlay";
+export type BlendMode =
+  | "normal"
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "darken"
+  | "lighten"
+  | "color-dodge"
+  | "color-burn"
+  | "hard-light"
+  | "soft-light"
+  | "difference"
+  | "exclusion";
 
 export interface Transform {
   x: number;
@@ -20,19 +32,12 @@ export function identityTransform(): Transform {
 
 /** Raster pixel source for a layer. Kept as an ImageBitmap-friendly source. */
 export interface RasterSource {
-  /** Natural (unscaled) pixel width of the source image. */
   width: number;
-  /** Natural (unscaled) pixel height of the source image. */
   height: number;
-  /**
-   * The decoded image data. In the browser this is an HTMLImageElement or
-   * ImageBitmap; the renderer converts it to a GPU texture. Kept as `unknown`
-   * here so this module never depends on DOM/GPU types.
-   */
   bitmap: unknown;
 }
 
-export type LayerType = "raster";
+export type LayerType = "raster" | "text" | "group";
 
 export interface Layer {
   id: string;
@@ -43,7 +48,34 @@ export interface Layer {
   blendMode: BlendMode;
   visible: boolean;
   locked: boolean;
+  /** Raster / text bitmap. Groups have a 1×1 transparent placeholder. */
   source: RasterSource;
+  /**
+   * Optional layer mask (same dimensions as `source`). Stored as RGBA where the
+   * alpha channel is the coverage (255 = fully visible, 0 = hidden). Applied
+   * non-destructively at render time.
+   */
+  mask?: RasterSource | null;
+  /** When false, the mask is ignored (kept but disabled). Defaults to true. */
+  maskEnabled?: boolean;
+  /** Clip this layer to the alpha of the layer directly below it. */
+  clip?: boolean;
+  /** For type === "text" */
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  fillColor?: string;
+  bold?: boolean;
+  italic?: boolean;
+  align?: "left" | "center" | "right";
+  strokeColor?: string;
+  strokeWidth?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+  /** For type === "group" — child layer ids (paint order bottom→top). */
+  childIds?: string[];
+  /** If set, this layer belongs to a group. */
+  parentId?: string | null;
 }
 
 export interface CanvasSize {
@@ -51,10 +83,13 @@ export interface CanvasSize {
   height: number;
 }
 
+export type CanvasBackground = "transparent" | string;
+
 export interface DocumentMeta {
   name: string;
   createdAt: number;
   modifiedAt: number;
+  background?: CanvasBackground;
 }
 
 /** Events emitted by the LayerGraph so the renderer + UI store can react. */
