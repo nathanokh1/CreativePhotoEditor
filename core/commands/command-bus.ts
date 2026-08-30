@@ -27,6 +27,19 @@ export class CommandBus {
     if (cmd) cmd.execute(this.graph);
   }
 
+  /** Jump the history to a given number of applied commands (undo/redo in bulk). */
+  jumpTo(targetApplied: number): void {
+    let steps = this.history.stepsTo(targetApplied);
+    while (steps < 0) {
+      this.undo();
+      steps++;
+    }
+    while (steps > 0) {
+      this.redo();
+      steps--;
+    }
+  }
+
   getHistory(): History {
     return this.history;
   }

@@ -68,4 +68,24 @@ export class History {
     this.future = [];
     this.notify();
   }
+
+  /**
+   * The full timeline in chronological order (oldest first). `applied` is how
+   * many of these have been executed — i.e. entries [0, applied) are done and
+   * [applied, end) are undone (available to redo).
+   */
+  timeline(): { labels: string[]; applied: number } {
+    const labels = [
+      ...this.past.map((c) => c.label),
+      ...[...this.future].reverse().map((c) => c.label),
+    ];
+    return { labels, applied: this.past.length };
+  }
+
+  /** Steps needed to move the applied pointer to `targetApplied` (+ = redo). */
+  stepsTo(targetApplied: number): number {
+    const total = this.past.length + this.future.length;
+    const clamped = Math.max(0, Math.min(total, targetApplied));
+    return clamped - this.past.length;
+  }
 }
