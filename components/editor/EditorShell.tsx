@@ -202,12 +202,12 @@ export function EditorShell() {
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-panel-sunken text-ink">
       <TopBar onOpenSettings={() => setSettingsOpen(true)} />
+      <OriOpsHandoff />
       <TabBar />
       <div className="flex min-h-0 flex-1">
         <Toolbar />
         <main className="relative min-w-0 flex-1">
           <CanvasViewport />
-          <OriOpsHandoff />
           <TransformOptionsBar />
           <PaintOptionsBar />
           <TextOptionsBar />

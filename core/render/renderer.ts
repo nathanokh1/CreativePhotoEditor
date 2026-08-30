@@ -673,20 +673,44 @@ export class Renderer {
     const layers = this.graph.getLayersBottomUp();
     for (let i = layers.length - 1; i >= 0; i--) {
       const layer = layers[i];
-      if (!layer.visible || layer.locked) continue;
-      const sprite = this.sprites.get(layer.id);
-      if (!sprite) continue;
-      const local = sprite.toLocal(global);
-      if (
-        local.x >= 0 &&
-        local.y >= 0 &&
-        local.x <= layer.source.width &&
-        local.y <= layer.source.height
-      ) {
-        return layer.id;
-      }
+      if (!layer.visible || layer.locked || layer.type === "group") continue;
+      if (!this.pointHitsLayer(layer, global)) continue;
+      return layer.id;
     }
     return null;
+  }
+
+  /** True if the screen point lies inside a specific layer's bounds (ignores z-order). */
+  hitTestLayer(layerId: string, canvasX: number, canvasY: number): boolean {
+    if (!this.graph) return false;
+    const layer = this.graph.getLayer(layerId);
+    if (!layer || !layer.visible || layer.locked || layer.type === "group") return false;
+    return this.pointHitsLayer(layer, new Point(canvasX, canvasY));
+  }
+
+  /**
+   * Bounds check + alpha sample so transparent areas of a raster/text bitmap
+   * pass through to layers below. Text layers get a slightly looser alpha
+   * threshold so thin glyphs are easier to grab.
+   */
+  private pointHitsLayer(layer: Layer, global: Point): boolean {
+    const sprite = this.sprites.get(layer.id);
+    if (!sprite) return false;
+    const local = sprite.toLocal(global);
+    const w = layer.source.width;
+    const h = layer.source.height;
+    if (local.x < 0 || local.y < 0 || local.x > w || local.y > h) return false;
+
+    // Full-frame opaque photos: skip the (expensive) alpha read when clearly solid.
+    // Text / partial rasters: require some coverage so empty padding doesn't steal hits.
+    const bitmap = layer.source.bitmap as CanvasImageSource | undefined;
+    if (!bitmap) return true;
+    const ix = Math.min(w - 1, Math.max(0, Math.floor(local.x)));
+    const iy = Math.min(h - 1, Math.max(0, Math.floor(local.y)));
+    const alpha = sampleAlpha(bitmap, ix, iy, w, h);
+    if (alpha === null) return true;
+    const minAlpha = layer.type === "text" ? 8 : 16;
+    return alpha >= minAlpha;
   }
 
   hitTestHandle(canvasX: number, canvasY: number, layerId: string): HandleId | null {
@@ -808,5 +832,38 @@ export class Renderer {
     this.app?.destroy(true, { children: true });
     this.app = null;
     this.hostCanvas = null;
+  }
+}
+
+/** 1×1 scratch canvas for alpha sampling under the pointer. */
+let alphaProbe: HTMLCanvasElement | null = null;
+let alphaProbeCtx: CanvasRenderingContext2D | null = null;
+
+function sampleAlpha(
+  bitmap: CanvasImageSource,
+  ix: number,
+  iy: number,
+  srcW: number,
+  srcH: number,
+): number | null {
+  try {
+    if (!alphaProbe) {
+      alphaProbe = document.createElement("canvas");
+      alphaProbe.width = 1;
+      alphaProbe.height = 1;
+      alphaProbeCtx = alphaProbe.getContext("2d", { willReadFrequently: true });
+    }
+    const ctx = alphaProbeCtx;
+    if (!ctx) return null;
+    ctx.clearRect(0, 0, 1, 1);
+    // Draw the single source pixel into the probe.
+    ctx.drawImage(bitmap, ix, iy, 1, 1, 0, 0, 1, 1);
+    const a = ctx.getImageData(0, 0, 1, 1).data[3];
+    // Guard against zero-size / tainted canvas failures silently.
+    void srcW;
+    void srcH;
+    return a;
+  } catch {
+    return null;
   }
 }

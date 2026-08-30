@@ -38,8 +38,19 @@ export class TransformTool implements Tool {
       }
     }
 
+    // Prefer selected text when click is inside it (even under a covering photo).
+    const inActive =
+      !!active &&
+      active.visible &&
+      !active.locked &&
+      active.type !== "group" &&
+      ctx.renderer.hitTestLayer(active.id, pt.canvasX, pt.canvasY);
     const hit = ctx.renderer.hitTest(pt.canvasX, pt.canvasY);
-    const target = hit ?? active?.id ?? null;
+    let target: string | null = null;
+    if (inActive && active!.type === "text") target = active!.id;
+    else if (hit) target = hit;
+    else if (inActive) target = active!.id;
+    else target = active?.id ?? null;
     if (!target) {
       this.reset();
       return;

@@ -10,6 +10,10 @@ export function OnboardingHints() {
 
   useEffect(() => {
     try {
+      if (typeof window !== "undefined") {
+        const q = new URLSearchParams(window.location.search);
+        if (q.get("oriOpsAssetId")) return; // keep canvas clear during ori-ops handoff
+      }
       if (!localStorage.getItem(STORAGE_KEY)) setOpen(true);
     } catch {
       setOpen(true);

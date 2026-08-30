@@ -610,6 +610,7 @@ export class EditorEngine {
     layer.shadowColor = style.shadowColor;
     layer.shadowBlur = style.shadowBlur;
     this.bus.dispatch(new AddLayerCommand(layer));
+    this.setTool("move");
   }
 
   async updateTextLayer(id: string, patch: TextLayerPatch): Promise<void> {
