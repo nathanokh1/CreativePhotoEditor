@@ -20,6 +20,7 @@ export class ToolManager {
   private paintStyle: StrokeStyle = { ...DEFAULT_STROKE_STYLE };
   private wandStyle: WandStyle = { ...DEFAULT_WAND_STYLE };
   private maskEditLayerId: string | null = null;
+  private snapEnabled = true;
   private penTool: PenTool;
 
   constructor(private ctx: ToolContext) {
@@ -79,6 +80,10 @@ export class ToolManager {
 
   getLockAspect(): boolean {
     return this.transformTool.lockAspect;
+  }
+
+  setSnapEnabled(on: boolean): void {
+    this.snapEnabled = on;
   }
 
   setPaintStyle(patch: Partial<StrokeStyle>): void {
