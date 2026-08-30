@@ -2,6 +2,7 @@
 // a future engine swap (or Tauri/mobile wrap) doesn't ripple through the app.
 import {
   Application,
+  ColorMatrixFilter,
   Container,
   Graphics,
   Point,
@@ -10,6 +11,8 @@ import {
   Texture,
 } from "pixi.js";
 import { BlendMode, CanvasSize, Layer, LayerGraph } from "../layer-graph";
+import type { AdjustmentOptions } from "../file-io/raster-edit";
+import { buildAdjustmentMatrix } from "./color-matrix";
 import { HandleId, handlePositions, layerBounds } from "../tools/transform-math";
 import type { SelectionRect } from "../file-io/clipboard";
 import { maskToOverlayCanvas, type SelectionMask } from "../file-io/selection";
@@ -74,6 +77,9 @@ export class Renderer {
   private selectionMask: SelectionMask | null = null;
   private selectionSprite: Sprite | null = null;
   private selectionTexture: Texture | null = null;
+  private snapLines: { axis: "x" | "y"; pos: number }[] = [];
+  private viewportListeners = new Set<(v: ViewportState) => void>();
+  private adjustFilters = new Map<string, ColorMatrixFilter>();
 
   async init(canvas: HTMLCanvasElement, width: number, height: number): Promise<void> {
     this.hostCanvas = canvas;
@@ -200,9 +206,48 @@ export class Renderer {
     return { ...this.view };
   }
 
+  /** Subscribe to pan/zoom changes (drives HTML rulers). Returns unsubscribe. */
+  onViewportChange(cb: (v: ViewportState) => void): () => void {
+    this.viewportListeners.add(cb);
+    return () => this.viewportListeners.delete(cb);
+  }
+
+  /** Snap alignment guides (document-space axis positions) drawn during a drag. */
+  setSnapLines(lines: { axis: "x" | "y"; pos: number }[]): void {
+    this.snapLines = lines;
+    this.drawOverlay();
+  }
+
+  /**
+   * Live, non-destructive GPU preview of tonal/color adjustments on one layer via
+   * a ColorMatrixFilter. Pass null to clear. The exact result is baked on Apply
+   * through the CPU path, so preview ≈ final.
+   */
+  setAdjustmentPreview(layerId: string, opts: AdjustmentOptions | null): void {
+    const sprite = this.sprites.get(layerId);
+    if (!sprite) return;
+    if (!opts) {
+      const existing = this.adjustFilters.get(layerId);
+      if (existing) {
+        sprite.filters = [];
+        existing.destroy?.();
+        this.adjustFilters.delete(layerId);
+      }
+      return;
+    }
+    let filter = this.adjustFilters.get(layerId);
+    if (!filter) {
+      filter = new ColorMatrixFilter();
+      this.adjustFilters.set(layerId, filter);
+      sprite.filters = [filter];
+    }
+    filter.matrix = buildAdjustmentMatrix(opts) as ColorMatrixFilter["matrix"];
+  }
+
   private applyViewport(): void {
     this.viewport.position.set(this.view.x, this.view.y);
     this.viewport.scale.set(this.view.zoom);
+    for (const cb of this.viewportListeners) cb({ ...this.view });
   }
 
   fitToView(): void {
@@ -305,6 +350,17 @@ export class Renderer {
       for (let y = 0; y <= size.height; y += step) {
         g.moveTo(0, y).lineTo(size.width, y).stroke({ width: 1 / this.view.zoom, color: 0x2a2e37, alpha: 0.6 });
       }
+    }
+
+    if (this.snapLines.length > 0) {
+      for (const line of this.snapLines) {
+        if (line.axis === "x") {
+          g.moveTo(line.pos, 0).lineTo(line.pos, size.height);
+        } else {
+          g.moveTo(0, line.pos).lineTo(size.width, line.pos);
+        }
+      }
+      g.stroke({ width: 1 / this.view.zoom, color: 0xf472b6, alpha: 0.95 });
     }
 
     this.drawPenPreview(g);
@@ -426,6 +482,11 @@ export class Renderer {
         this.textureBitmaps.delete(id);
         this.textureMasks.delete(id);
         this.maskPreview.delete(id);
+        const af = this.adjustFilters.get(id);
+        if (af) {
+          af.destroy?.();
+          this.adjustFilters.delete(id);
+        }
       }
     }
 
@@ -742,6 +803,7 @@ export class Renderer {
     this.textureMasks.clear();
     this.maskPreview.clear();
     this.clipMasks.clear();
+    this.adjustFilters.clear();
     this.sprites.clear();
     this.app?.destroy(true, { children: true });
     this.app = null;
