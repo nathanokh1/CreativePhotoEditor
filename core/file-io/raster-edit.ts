@@ -71,6 +71,45 @@ export interface StrokeStyle {
   flow: number;
   /** Distance between stamps as a fraction of size (0.01..1). Lower = smoother. */
   spacing: number;
+  /**
+   * Optional custom brush tip: a grayscale/alpha stamp (coverage). When set, the
+   * round gradient is replaced by this shape, tinted to the stroke color. Cleared
+   * (undefined/null) means the default round tip.
+   */
+  tip?: HTMLCanvasElement | null;
+  /** Identifier for the active tip (for UI highlighting). "round" = default. */
+  tipName?: string;
+}
+
+// Per-(tip,color) cache of pre-tinted tip canvases so we don't re-tint every stamp.
+const tintedTipCache = new WeakMap<HTMLCanvasElement, Map<string, HTMLCanvasElement>>();
+
+function getTintedTip(
+  tip: HTMLCanvasElement,
+  r: number,
+  g: number,
+  b: number,
+): HTMLCanvasElement {
+  const key = `${r},${g},${b}`;
+  let byColor = tintedTipCache.get(tip);
+  if (!byColor) {
+    byColor = new Map();
+    tintedTipCache.set(tip, byColor);
+  }
+  const cached = byColor.get(key);
+  if (cached) return cached;
+  const out = document.createElement("canvas");
+  out.width = tip.width;
+  out.height = tip.height;
+  const ctx = out.getContext("2d")!;
+  ctx.drawImage(tip, 0, 0);
+  // Tint: keep the tip's alpha, replace RGB with the stroke color.
+  ctx.globalCompositeOperation = "source-in";
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.globalCompositeOperation = "source-over";
+  byColor.set(key, out);
+  return out;
 }
 
 export const DEFAULT_STROKE_STYLE: StrokeStyle = {
@@ -117,6 +156,17 @@ export function stamp(
     return;
   }
 
+  // Custom tip: draw the tinted stamp shape scaled to the brush size.
+  if (style.tip && style.tipName && style.tipName !== "round") {
+    const size = Math.max(1, style.size);
+    const tinted = getTintedTip(style.tip, r, g, b);
+    ctx.globalAlpha = flow;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(tinted, x - size / 2, y - size / 2, size, size);
+    ctx.restore();
+    return;
+  }
+
   const radius = Math.max(0.5, style.size / 2);
   const solid = Math.min(0.98, Math.max(0, style.hardness));
   const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
@@ -128,6 +178,84 @@ export function stamp(
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+}
+
+/** Built-in procedural brush tip. Returns a white-on-transparent alpha stamp. */
+export function makeBrushTip(name: "spray" | "chalk", size = 96): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext("2d")!;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = size / 2;
+  if (name === "spray") {
+    const dots = Math.floor(size * 6);
+    for (let i = 0; i < dots; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      // Bias toward the center so the spray fades at the edges.
+      const rr = radius * Math.pow(Math.random(), 0.6);
+      const x = cx + Math.cos(ang) * rr;
+      const y = cy + Math.sin(ang) * rr;
+      const a = 0.5 * (1 - rr / radius);
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(x, y, Math.random() * 1.5 + 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    // Chalk: soft round base modulated by subtractive noise for a grainy edge.
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.7, "rgba(255,255,255,0.85)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fill();
+    const img = ctx.getImageData(0, 0, size, size);
+    const d = img.data;
+    for (let i = 3; i < d.length; i += 4) {
+      d[i] = Math.max(0, d[i] - Math.random() * 140);
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  return c;
+}
+
+/**
+ * Convert an imported image into a brush tip (alpha stamp). If the image has
+ * transparency, its alpha is the coverage; otherwise darkness becomes coverage
+ * (so a black-on-white brush PNG works). Result is white RGBA, ready to tint.
+ */
+export function imageToBrushTip(img: CanvasImageSource, max = 200): HTMLCanvasElement {
+  const iw = (img as HTMLImageElement).width || 96;
+  const ih = (img as HTMLImageElement).height || 96;
+  const scale = Math.min(1, max / Math.max(iw, ih));
+  const w = Math.max(1, Math.round(iw * scale));
+  const h = Math.max(1, Math.round(ih * scale));
+  const src = document.createElement("canvas");
+  src.width = w;
+  src.height = h;
+  const sctx = src.getContext("2d", { willReadFrequently: true })!;
+  sctx.drawImage(img, 0, 0, w, h);
+  const image = sctx.getImageData(0, 0, w, h);
+  const d = image.data;
+  let hasAlpha = false;
+  for (let i = 3; i < d.length; i += 4) {
+    if (d[i] < 250) {
+      hasAlpha = true;
+      break;
+    }
+  }
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    const coverage = hasAlpha ? d[i + 3] : 255 - lum;
+    d[i] = d[i + 1] = d[i + 2] = 255;
+    d[i + 3] = coverage;
+  }
+  sctx.putImageData(image, 0, 0);
+  return src;
 }
 
 /** Connect two points with evenly-spaced stamps on the stroke buffer. */
@@ -275,6 +403,90 @@ export function applyAdjustments(canvas: HTMLCanvasElement, opts: AdjustmentOpti
     d[i + 2] = Math.round(Math.min(255, Math.max(0, bl * 255)));
   }
   ctx.putImageData(image, 0, 0);
+}
+
+/**
+ * One-click auto-enhance (no AI): per-channel percentile stretch (auto white
+ * balance + contrast) plus a gentle saturation lift. Operates in place and only
+ * touches non-transparent pixels. Returns false if nothing meaningful changed.
+ */
+export function autoEnhance(canvas: HTMLCanvasElement, strength = 1): boolean {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return false;
+  const { width, height } = canvas;
+  if (width === 0 || height === 0) return false;
+  const image = ctx.getImageData(0, 0, width, height);
+  const d = image.data;
+
+  // Per-channel histograms over opaque pixels.
+  const hist = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
+  let count = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 8) continue;
+    hist[0][d[i]]++;
+    hist[1][d[i + 1]]++;
+    hist[2][d[i + 2]]++;
+    count++;
+  }
+  if (count === 0) return false;
+
+  // Clip the darkest/brightest 0.4% of each channel, then stretch to [0,255].
+  const clip = Math.max(1, Math.floor(count * 0.004));
+  const lows: number[] = [];
+  const highs: number[] = [];
+  for (let c = 0; c < 3; c++) {
+    let acc = 0;
+    let lo = 0;
+    for (let v = 0; v < 256; v++) {
+      acc += hist[c][v];
+      if (acc > clip) {
+        lo = v;
+        break;
+      }
+    }
+    acc = 0;
+    let hi = 255;
+    for (let v = 255; v >= 0; v--) {
+      acc += hist[c][v];
+      if (acc > clip) {
+        hi = v;
+        break;
+      }
+    }
+    lows.push(lo);
+    highs.push(hi <= lo ? lo + 1 : hi);
+  }
+
+  const s = Math.min(1, Math.max(0, strength));
+  // Build per-channel lookup tables blended toward identity by (1 - strength).
+  const lut = [new Uint8Array(256), new Uint8Array(256), new Uint8Array(256)];
+  for (let c = 0; c < 3; c++) {
+    const lo = lows[c];
+    const range = highs[c] - lo;
+    for (let v = 0; v < 256; v++) {
+      const stretched = Math.min(255, Math.max(0, ((v - lo) / range) * 255));
+      lut[c][v] = Math.round(v + (stretched - v) * s);
+    }
+  }
+
+  const satBoost = 0.12 * s;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 8) continue;
+    let r = lut[0][d[i]];
+    let g = lut[1][d[i + 1]];
+    let b = lut[2][d[i + 2]];
+    if (satBoost > 0) {
+      const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      r = gray + (r - gray) * (1 + satBoost);
+      g = gray + (g - gray) * (1 + satBoost);
+      b = gray + (b - gray) * (1 + satBoost);
+    }
+    d[i] = Math.round(Math.min(255, Math.max(0, r)));
+    d[i + 1] = Math.round(Math.min(255, Math.max(0, g)));
+    d[i + 2] = Math.round(Math.min(255, Math.max(0, b)));
+  }
+  ctx.putImageData(image, 0, 0);
+  return true;
 }
 
 export type FilterKind =
