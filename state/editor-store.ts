@@ -81,6 +81,10 @@ interface EditorState {
   activeTool: ToolId;
   canUndo: boolean;
   canRedo: boolean;
+  /** Chronological command labels for the History panel. */
+  historyLabels: string[];
+  /** How many of `historyLabels` are currently applied (the timeline cursor). */
+  historyApplied: number;
   zoom: number;
   docName: string;
   busy: string | null;
@@ -96,11 +100,13 @@ interface EditorState {
   setLockAspect: (lock: boolean) => void;
   undo: () => void;
   redo: () => void;
+  historyJump: (targetApplied: number) => void;
   copy: () => Promise<void>;
   cut: () => Promise<void>;
   paste: () => void;
   pasteFromSystem: () => Promise<void>;
   importFiles: (files: FileList | File[]) => Promise<void>;
+  importFromUrl: (url: string) => Promise<void>;
   exportAs: (
     format: "png" | "jpeg" | "webp",
     options?: { quality?: number; scale?: number; background?: string },
@@ -153,7 +159,11 @@ interface EditorState {
   }) => Promise<void>;
   addShapeLayer: (kind: "rect" | "ellipse") => Promise<void>;
   applyAdjustments: (opts: AdjustmentOptions) => Promise<void>;
+  previewAdjustments: (opts: AdjustmentOptions | null) => void;
   applyFilter: (kind: FilterKind) => Promise<void>;
+  autoEnhance: () => Promise<void>;
+  removeBackground: () => Promise<void>;
+  selectSubject: () => Promise<void>;
   autoLayers: (opts: {
     mode: "regions" | "grid";
     rows?: number;
@@ -172,6 +182,8 @@ interface EditorState {
     hardness?: number;
     flow?: number;
     spacing?: number;
+    tip?: HTMLCanvasElement | null;
+    tipName?: string;
   }) => void;
   setShowGuides: (show: boolean) => void;
 
@@ -356,6 +368,8 @@ export const useEditor = create<EditorState>((set, get) => {
   activeTool: "move",
   canUndo: false,
   canRedo: false,
+  historyLabels: [],
+  historyApplied: 0,
   zoom: 1,
   docName: "Untitled",
   busy: null,
@@ -492,11 +506,14 @@ export const useEditor = create<EditorState>((set, get) => {
     if (!engine) return;
     const renderer = engine.getRenderer();
     const pen = engine.penInfo();
+    const timeline = engine.historyTimeline();
     set({
       layers: toLayerViews(engine),
       activeLayerId: engine.graph.getActiveLayerId(),
       canUndo: engine.history.canUndo(),
       canRedo: engine.history.canRedo(),
+      historyLabels: timeline.labels,
+      historyApplied: timeline.applied,
       docName: engine.graph.getMeta().name,
       zoom: renderer ? renderer.getViewport().zoom : 1,
       activeTool: engine.getTools().getActiveId(),
@@ -520,6 +537,7 @@ export const useEditor = create<EditorState>((set, get) => {
 
   undo: () => get().engine?.undo(),
   redo: () => get().engine?.redo(),
+  historyJump: (targetApplied) => get().engine?.historyJumpTo(targetApplied),
 
   copy: async () => {
     await get().engine?.copy();
@@ -543,6 +561,18 @@ export const useEditor = create<EditorState>((set, get) => {
       for (const file of Array.from(files)) {
         await engine.importFile(file, { fitCanvasToImage: fit });
       }
+    } finally {
+      set({ busy: null });
+    }
+  },
+
+  importFromUrl: async (url) => {
+    const engine = get().engine;
+    if (!engine) return;
+    set({ busy: "Loading from ori-ops…" });
+    try {
+      const fit = useSettings.getState().fitCanvasToFirstImport;
+      await engine.importFromUrl(url, { fitCanvasToImage: fit });
     } finally {
       set({ busy: null });
     }
@@ -671,12 +701,53 @@ export const useEditor = create<EditorState>((set, get) => {
   applyAdjustments: async (opts) => {
     const engine = get().engine;
     const id = engine?.graph.getActiveLayerId();
-    if (engine && id) await engine.applyLayerAdjustments(id, opts);
+    if (engine && id) {
+      engine.previewAdjustments(id, null);
+      await engine.applyLayerAdjustments(id, opts);
+    }
+  },
+  previewAdjustments: (opts) => {
+    const engine = get().engine;
+    const id = engine?.graph.getActiveLayerId();
+    if (engine && id) engine.previewAdjustments(id, opts);
   },
   applyFilter: async (kind) => {
     const engine = get().engine;
     const id = engine?.graph.getActiveLayerId();
     if (engine && id) await engine.applyLayerFilter(id, kind);
+  },
+  autoEnhance: async () => {
+    const engine = get().engine;
+    const id = engine?.graph.getActiveLayerId();
+    if (engine && id) await engine.autoEnhanceLayer(id);
+  },
+  removeBackground: async () => {
+    const engine = get().engine;
+    const id = engine?.graph.getActiveLayerId();
+    if (!engine || !id) return;
+    set({ busy: "Removing background…" });
+    try {
+      await engine.removeLayerBackground(id);
+    } catch (e) {
+      console.error("Background removal failed", e);
+    } finally {
+      set({ busy: null });
+      get().refresh();
+    }
+  },
+  selectSubject: async () => {
+    const engine = get().engine;
+    const id = engine?.graph.getActiveLayerId();
+    if (!engine || !id) return;
+    set({ busy: "Selecting subject…" });
+    try {
+      await engine.selectSubject(id);
+    } catch (e) {
+      console.error("Select subject failed", e);
+    } finally {
+      set({ busy: null });
+      get().refresh();
+    }
   },
   autoLayers: async (opts) => {
     const engine = get().engine;

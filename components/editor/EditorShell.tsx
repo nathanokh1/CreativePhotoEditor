@@ -14,6 +14,7 @@ import { TabBar } from "./TabBar";
 import { TransformOptionsBar } from "./TransformOptionsBar";
 import { WandOptionsBar } from "./WandOptionsBar";
 import { PenOptionsBar } from "./PenOptionsBar";
+import { OriOpsHandoff } from "./OriOpsHandoff";
 
 export function EditorShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -206,6 +207,7 @@ export function EditorShell() {
         <Toolbar />
         <main className="relative min-w-0 flex-1">
           <CanvasViewport />
+          <OriOpsHandoff />
           <TransformOptionsBar />
           <PaintOptionsBar />
           <TextOptionsBar />

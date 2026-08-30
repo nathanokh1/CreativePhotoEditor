@@ -31,6 +31,7 @@ import {
   FilterKind,
   applyAdjustments,
   applyFilter,
+  autoEnhance,
   canvasToSource,
   DEFAULT_TEXT_STYLE,
   clearRectOnSource,
@@ -45,6 +46,7 @@ import {
   gridRegions,
   isSupportedImage,
   loadImageAsSource,
+  loadImageFromUrl,
   loadProject,
   renderTextSource,
   saveProject,
@@ -169,6 +171,10 @@ export class EditorEngine {
 
   setLockAspect(lock: boolean): void {
     this.tools?.setLockAspect(lock);
+  }
+
+  setSnapEnabled(on: boolean): void {
+    this.tools?.setSnapEnabled(on);
   }
 
   setPaintStyle(patch: Partial<StrokeStyle>): void {
@@ -515,6 +521,16 @@ export class EditorEngine {
     this.bus.redo();
   }
 
+  /** Chronological history labels + how many are currently applied. */
+  historyTimeline(): { labels: string[]; applied: number } {
+    return this.history.timeline();
+  }
+
+  /** Jump the document to a point in history (bulk undo/redo). */
+  historyJumpTo(targetApplied: number): void {
+    this.bus.jumpTo(targetApplied);
+  }
+
   async newDocument(opts: NewDocumentOptions): Promise<void> {
     const meta = {
       name: opts.name || "Untitled",
@@ -531,6 +547,22 @@ export class EditorEngine {
     if (!isSupportedImage(file)) throw new Error(`Unsupported file: ${file.name}`);
     const source = await loadImageAsSource(file);
     const name = file.name.replace(/\.[^.]+$/, "") || "Layer";
+    await this.addRasterSource(name, source, options);
+  }
+
+  /** Load a remote image URL (e.g. ori-ops Cloudinary) as a new document layer. */
+  async importFromUrl(url: string, options: ImportOptions = {}): Promise<void> {
+    const source = await loadImageFromUrl(url);
+    const name =
+      url.split("/").pop()?.replace(/\.[^.]+$/, "")?.slice(0, 48) || "Ori";
+    await this.addRasterSource(name, source, options);
+  }
+
+  private async addRasterSource(
+    name: string,
+    source: Awaited<ReturnType<typeof loadImageFromUrl>>,
+    options: ImportOptions,
+  ): Promise<void> {
     const isFirst = this.graph.getLayersBottomUp().length === 0;
     const fit = options.fitCanvasToImage !== false && isFirst;
 
@@ -793,6 +825,65 @@ export class EditorEngine {
     this.bus.dispatch(new ReplaceLayerSourceCommand(id, source, label));
   }
 
+  /** Live, non-destructive GPU preview of adjustments (null clears). */
+  previewAdjustments(id: string, opts: AdjustmentOptions | null): void {
+    this.renderer?.setAdjustmentPreview(id, opts);
+  }
+
+  /** One-click heuristic enhance (auto white-balance + contrast) on a layer. */
+  async autoEnhanceLayer(id: string): Promise<void> {
+    const layer = this.graph.getLayer(id);
+    if (!layer || layer.type === "group") return;
+    const canvas = sourceToCanvas(layer.source);
+    if (!autoEnhance(canvas)) return;
+    const source = await canvasToSource(canvas);
+    this.bus.dispatch(new ReplaceLayerSourceCommand(id, source, "Auto-enhance"));
+  }
+
+  /** In-browser ML background removal — replaces the layer with the subject cutout. */
+  async removeLayerBackground(id: string): Promise<void> {
+    const layer = this.graph.getLayer(id);
+    if (!layer || layer.type === "group") return;
+    const { segmentForeground } = await import("./ml/background");
+    const cutout = await segmentForeground(layer.source);
+    const source = await canvasToSource(cutout);
+    this.bus.dispatch(new ReplaceLayerSourceCommand(id, source, "Remove background"));
+  }
+
+  /**
+   * In-browser ML "select subject" — segments the foreground and turns its alpha
+   * into a document-space selection mask (positioned by the layer's transform).
+   */
+  async selectSubject(id: string): Promise<boolean> {
+    const layer = this.graph.getLayer(id);
+    if (!layer || layer.type === "group" || !this.renderer) return false;
+    const { segmentForeground } = await import("./ml/background");
+    const cutout = await segmentForeground(layer.source);
+
+    const { width, height } = this.graph.getCanvasSize();
+    const doc = document.createElement("canvas");
+    doc.width = width;
+    doc.height = height;
+    const ctx = doc.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return false;
+    const t = layer.transform;
+    ctx.drawImage(
+      cutout,
+      t.x,
+      t.y,
+      layer.source.width * t.scaleX,
+      layer.source.height * t.scaleY,
+    );
+    const img = ctx.getImageData(0, 0, width, height);
+    const mask = createEmptyMask(width, height);
+    for (let p = 0; p < mask.data.length; p++) {
+      mask.data[p] = img.data[p * 4 + 3];
+    }
+    if (maskIsEmpty(mask)) return false;
+    this.renderer.setSelectionMask(mask);
+    return true;
+  }
+
   /**
    * Split the active layer into per-region layers.
    * "regions" auto-detects bordered blobs; "grid" cuts an even rows×cols grid.
@@ -1019,14 +1110,19 @@ export class EditorEngine {
   }
 
   async exportAs(format: ExportFormat, options: ExportOptions = {}): Promise<void> {
+    const blob = await this.exportBlob(format, options);
+    const name = this.graph.getMeta().name || "export";
+    downloadBlob(blob, `${name}.${format === "jpeg" ? "jpg" : format}`);
+  }
+
+  /** Flatten to a Blob without triggering a download (ori-ops handoff). */
+  async exportBlob(format: ExportFormat, options: ExportOptions = {}): Promise<Blob> {
     if (!this.renderer) throw new Error("Renderer not ready");
-    const blob = await flattenToBlob(this.renderer, format, {
+    return flattenToBlob(this.renderer, format, {
       quality: options.quality ?? 0.92,
       scale: options.scale ?? 1,
       background: options.background,
     });
-    const name = this.graph.getMeta().name || "export";
-    downloadBlob(blob, `${name}.${format === "jpeg" ? "jpg" : format}`);
   }
 
   /**
